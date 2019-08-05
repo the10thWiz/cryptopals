@@ -5,8 +5,7 @@ use openssl::symm::{encrypt, decrypt, Cipher};
 #[allow(dead_code)]
 pub fn encrypt_ecb(input: Bytes, key: Bytes) -> Bytes {
     let cipher = Cipher::aes_128_ecb();
-    let key = b"YELLOW SUBMARINE";
-    Bytes::from_vec(encrypt(cipher, key, None, input.to_bytes()).unwrap())
+    Bytes::from_vec(encrypt(cipher, key.to_bytes(), None, input.to_bytes()).unwrap())
 }
 
 #[allow(dead_code)]
