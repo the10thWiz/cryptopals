@@ -30,7 +30,31 @@ pub fn hamming_dist(s1:&str, s2:&str) -> usize {
     dist
 }
 
-struct histogram {
-    chars :[char],
+#[allow(dead_code)]
+struct Histogram {
+    v :[(char, usize, f64); 62]
+}
+#[allow(dead_code)]
+impl Histogram {
+    pub fn create(s :&str) -> Histogram {
+        let mut v :[(char, usize, f64); 62] = [('a', 0, 0f64); 62];
+        for i in 0..26 {
+            v[i+00].0 = (i as u8 + 'a' as u8) as char;
+        }
+        for i in 0..26 {
+            v[i+26].0 = (i as u8 + 'A' as u8) as char;
+        }
+        for i in 0..10 {
+            v[i+52].0 = (i as u8 + '0' as u8) as char;
+        }
+        for _c in s.chars() {
+            
+        }
+
+        Histogram {v: v}
+    }
+}
+#[allow(dead_code)]
+fn test_histogram() {
 
 }
