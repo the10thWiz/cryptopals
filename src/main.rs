@@ -11,8 +11,13 @@ use std::time::Instant;
 fn main() {
     println!("-------------");
     let start = Instant::now();
-    challenge_2_10();
+    challenge_2_11();
     println!("-------------\nSuccess: {}ms", start.elapsed().as_millis() as u64);
+}
+
+#[allow(dead_code)]
+fn challenge_2_11() {
+    let data = open_ssl::encryption_oracle(file::File::read_utf8_file("data_lorem").read_bytes());
 }
 
 #[allow(dead_code)]
