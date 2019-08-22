@@ -1,6 +1,7 @@
 
 use std::fmt;
 use std::ops;
+use rand::prelude::*;
 
 #[derive(Debug, Clone)]
 pub struct Bytes {
@@ -99,6 +100,13 @@ impl Bytes {
         let mut ret = Vec::new();
         for _ in 0..size {
             ret.push(0u8);
+        }
+        Bytes {bytes: ret}
+    }
+    pub fn rand(size: usize) -> Bytes {
+        let mut ret = Vec::new();
+        for _ in 0..size {
+            ret.push(random());
         }
         Bytes {bytes: ret}
     }
