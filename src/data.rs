@@ -88,6 +88,13 @@ impl Bytes {
     pub fn from_vec(v: Vec<u8>) -> Bytes {
         Bytes {bytes: v}
     }
+    pub fn from_bytes(v: &[u8]) -> Bytes {
+        let mut ret = Bytes {bytes: Vec::new()};
+        for val in v {
+            ret.bytes.push(*val);
+        }
+        ret
+    }
     pub fn zero(size: usize) -> Bytes {
         let mut ret = Vec::new();
         for _ in 0..size {
@@ -349,7 +356,14 @@ impl Bytes {
     pub fn pad_pkcs7(&self, padding:usize) -> Bytes {
         let mut ret = self.clone();
         for _ in 0..padding {
-            ret.bytes.push(0x4u8);
+            ret.bytes.push(padding as u8);
+        }
+        ret
+    }
+    pub fn truncate(&self, len:usize) -> Bytes {
+        let mut ret = self.clone();
+        while ret.bytes.len() > len {
+            ret.bytes.pop();
         }
         ret
     }
