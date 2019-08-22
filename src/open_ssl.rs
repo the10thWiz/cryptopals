@@ -54,3 +54,17 @@ pub fn decrypt_cbc(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
     }
     ret
 }
+
+use rand::prelude::*;
+
+pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
+    let mut rng = thread_rng();
+
+    let plain = Bytes::rand(rng.gen_range(5, 10)) + input + Bytes::rand(rng.gen_range(5, 10));
+    if rng.gen() {
+        return (encrypt_cbc(plain, Bytes::rand(16), Bytes::rand(16)), true);
+    }else {
+        return (encrypt_ecb(plain, Bytes::rand(16)), false);
+    }
+}
+
