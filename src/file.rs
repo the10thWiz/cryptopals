@@ -6,7 +6,8 @@ use std::io::ErrorKind;
 
 enum DataType {
     HEX,
-    B64
+    B64,
+    UTF8
 }
 
 pub struct File {
@@ -18,6 +19,9 @@ impl File {
         File {data:DataType::HEX, file:fs::File::open(s).unwrap()}
     }
     pub fn read_64_file(s:&str) -> File {
+        File {data:DataType::B64, file:fs::File::open(s).unwrap()}
+    }
+    pub fn read_utf8_file(s:&str) -> File {
         File {data:DataType::B64, file:fs::File::open(s).unwrap()}
     }
 }
@@ -53,6 +57,24 @@ impl File {
                         },
                         Err(e) => match e.kind() {
                             ErrorKind::UnexpectedEof => return Bytes::read_64(&ret[..]),
+                            _ => panic!("Something happened: {:?}", e)
+                        }
+                    }
+                    if buf[0] as char != '\n' {
+                        ret.push(buf[0] as char);
+                    }
+                }
+            },
+            DataType::UTF8 => {
+                let mut ret = String::default();
+                loop {
+                    let mut buf = [0u8];
+                    match self.file.read(&mut buf) {
+                        Ok(n) => if n <= 0 {
+                            return Bytes::read_utf8(&ret[..]);
+                        },
+                        Err(e) => match e.kind() {
+                            ErrorKind::UnexpectedEof => return Bytes::read_utf8(&ret[..]),
                             _ => panic!("Something happened: {:?}", e)
                         }
                     }
