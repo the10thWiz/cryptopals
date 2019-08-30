@@ -21,6 +21,7 @@ impl File {
     pub fn read_64_file(s:&str) -> File {
         File {data:DataType::B64, file:fs::File::open(s).unwrap()}
     }
+    #[allow(dead_code)]
     pub fn read_utf8_file(s:&str) -> File {
         File {data:DataType::UTF8, file:fs::File::open(s).unwrap()}
     }
