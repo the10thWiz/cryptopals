@@ -22,7 +22,7 @@ impl File {
         File {data:DataType::B64, file:fs::File::open(s).unwrap()}
     }
     pub fn read_utf8_file(s:&str) -> File {
-        File {data:DataType::B64, file:fs::File::open(s).unwrap()}
+        File {data:DataType::UTF8, file:fs::File::open(s).unwrap()}
     }
 }
 
@@ -127,6 +127,26 @@ impl Iterator for File {
                     }
                     if buf[0] as char == '\n' {
                         return Some(Bytes::read_64(&ret[..]));
+                    }else {
+                        ret.push(buf[0] as char);
+                    }
+                }
+            },
+            DataType::UTF8 => {
+                let mut ret = String::default();
+                loop {
+                    let mut buf = [0u8];
+                    match self.file.read(&mut buf) {
+                        Ok(n) => if n <= 0 {
+                            return None;
+                        },
+                        Err(e) => match e.kind() {
+                            ErrorKind::UnexpectedEof => return None,
+                            _ => panic!("Something happened: {:?}", e)
+                        }
+                    }
+                    if buf[0] as char == '\n' {
+                        return Some(Bytes::read_utf8(&ret[..]));
                     }else {
                         ret.push(buf[0] as char);
                     }
