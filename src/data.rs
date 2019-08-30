@@ -1,6 +1,7 @@
 
 use std::fmt;
 use std::ops;
+use std::cmp;
 use rand::prelude::*;
 
 #[derive(Debug, Clone)]
@@ -154,7 +155,7 @@ impl Bytes {
         }
         ret
     }
-    pub fn to_ascii(&self) -> String {
+    pub fn to_utf8(&self) -> String {
         let mut ret = String::default();
         for b in self.bytes.iter() {
             ret.push(*b as char);
@@ -339,7 +340,7 @@ impl Bytes {
     }
     pub fn decollate(parts:Vec<Bytes>) -> Bytes {
         let mut ret = Vec::new();
-        for i in 0..parts.first().unwrap().size() {
+        for i in 0..parts.first().unwrap().len() {
             for p in parts.iter() {
                 match p.bytes.get(i) {
                     Some(v) => ret.push(*v),
@@ -363,8 +364,9 @@ impl Bytes {
     }
     pub fn pad_pkcs7(&self, padding:usize) -> Bytes {
         let mut ret = self.clone();
-        for _ in 0..padding {
-            ret.bytes.push(padding as u8);
+        let num = padding - self.len()%padding;
+        for _ in 0..num {
+            ret.bytes.push(num as u8);
         }
         ret
     }
@@ -372,6 +374,13 @@ impl Bytes {
         let mut ret = self.clone();
         while ret.bytes.len() > len {
             ret.bytes.pop();
+        }
+        ret
+    }
+    pub fn truncate_start(&self, len:usize) -> Bytes {
+        let mut ret = self.clone();
+        for _ in 0..len {
+            ret.bytes.remove(0);
         }
         ret
     }
@@ -404,7 +413,7 @@ impl Bytes {
         }
         true
     }
-    pub fn size(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.bytes.len()
     }
 }
@@ -444,9 +453,42 @@ impl ops::AddAssign<Self> for Bytes {
     }
 }
 
+
+impl ops::Mul<usize> for Bytes {
+    type Output = Self;
+    fn mul(self, num: usize) -> Self {
+        if num == 0 {
+            return Bytes::zero(0);
+        }
+        let mut ret = self.bytes.clone();
+        for _ in 1..num {
+            ret.append(&mut self.bytes.clone());
+        }
+        Self {bytes: ret}
+    }
+}
+impl ops::MulAssign<usize> for Bytes {
+    fn mul_assign(&mut self, num: usize) {
+        let mut ret = self.bytes.clone();
+        for _ in 1..num {
+            ret.append(&mut self.bytes.clone());
+        }
+        self.bytes = ret;
+    }
+}
+
 impl PartialEq for Bytes {
     fn eq(&self, other: &Self) -> bool {
-        self.bytes == other.bytes
+        if self.bytes.len() == other.bytes.len() {
+            for v in self.bytes.iter().zip(other.bytes.iter()) {
+                if v.0 != v.1 {
+                    return false;
+                }
+            }
+            true
+        }else {
+            false
+        }
     }
 }
 impl PartialEq<&str> for Bytes {
@@ -455,6 +497,30 @@ impl PartialEq<&str> for Bytes {
     }
 }
 impl std::cmp::Eq for Bytes {}
+
+impl std::cmp::PartialOrd for Bytes {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl std::cmp::Ord for Bytes {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if self.bytes.len() > other.bytes.len() {
+            std::cmp::Ordering::Greater
+        } else if self.bytes.len() < other.bytes.len() {
+            std::cmp::Ordering::Less
+        } else {
+            for bytes in self.bytes.iter().zip(other.bytes.iter()) {
+                if bytes.0 > bytes.1 {
+                    return std::cmp::Ordering::Greater;
+                }else if bytes.0 < bytes.1 {
+                    return std::cmp::Ordering::Less;
+                }
+            }
+            std::cmp::Ordering::Equal
+        }
+    }
+}
 
 impl fmt::Display for Bytes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
