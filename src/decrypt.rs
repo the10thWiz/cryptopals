@@ -10,7 +10,7 @@ pub fn decrypt_xor(data:Bytes, key:impl Iterator<Item = Bytes>, score:fn(&str)->
     let mut k:Bytes = Bytes::zero(1);
     let mut best = String::default();
     for b in key {
-        let tmp = (data.clone() ^ b.clone()).to_ascii();
+        let tmp = (data.clone() ^ b.clone()).to_utf8();
         let tmp_s = score(&tmp[..]);
         if tmp_s < max {
             max = tmp_s;
