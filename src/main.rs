@@ -5,19 +5,71 @@ mod lang;
 mod keys;
 mod decrypt;
 mod open_ssl;
+mod oracle;
 
 use std::time::Instant;
 
 fn main() {
     println!("-------------");
     let start = Instant::now();
-    challenge_2_11();
+    challenge_2_12();
     println!("-------------\nSuccess: {}ms", start.elapsed().as_millis() as u64);
 }
 
 #[allow(dead_code)]
+fn challenge_2_12() {
+    let unknown = data::Bytes::read_64("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
+    gaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IH\
+    N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK");
+    let oracle = oracle::Oracle::new();
+    
+    // 1. Block Size
+    let block_size = oracle.encrypt_ecb(data::Bytes::read_utf8("a")).len();
+
+    // 2. ECB mode
+    let vec = oracle.encrypt_ecb(data::Bytes::read_utf8("a")*64).split(16);
+    if vec[0] != vec[1] {
+        panic!("Oracle doesn't use ECB");
+    }
+
+    // 3. 1 byte short
+    let mut known = data::Bytes::zero(0);
+    // decrypt_byte(&oracle, block_size, &known, unknown.clone());
+    for _ in 0..unknown.len() {
+        known+= decrypt_byte(&oracle, block_size, &known, unknown.clone());
+    }
+    println!("{}", known.to_utf8());
+    
+}
+
+fn decrypt_byte(oracle : &oracle::Oracle, block_size : usize, known : &data:: Bytes, unknown : data::Bytes) -> data::Bytes {
+    let pre = data::Bytes::read_utf8("a")*(block_size-1 - known.len()%block_size);
+    let known_size = known.len()/block_size;
+    
+    let enc = oracle.encrypt_ecb(pre.clone()+unknown.clone()).truncate_start(known_size*block_size).truncate(block_size);
+    for k in keys::KeyGen::new(1) {
+        if enc == oracle.encrypt_ecb(pre.clone()+known.clone()+k.clone()).truncate_start(known_size*block_size).truncate(block_size) {
+            return k;
+        }
+    }
+    data::Bytes::zero(1)
+}
+
+#[allow(dead_code)]
 fn challenge_2_11() {
-    let data = open_ssl::encryption_oracle(file::File::read_utf8_file("data_lorem").read_bytes());
+    for i in 0..1000 {
+        println!("Trial {}", i);
+        let (data, cbc) = open_ssl::encryption_oracle(data::Bytes::read_utf8("a") * 100);
+        // println!("data: {}\n{}", data, if cbc {"CBC"} else {"ECB"});
+
+        let vec = data.split(16);
+        // println!("{}\n{}", vec[1], vec[2]);
+        if vec[1] == vec[2] {
+            assert_eq!(cbc, false);
+        }else {
+            assert_eq!(cbc, true);
+        }
+    }
 }
 
 #[allow(dead_code)]
@@ -25,13 +77,13 @@ fn challenge_2_10() {
     let data = file::File::read_64_file("data_2_10").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
     let iv = data::Bytes::read_utf8("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
-    println!("{}", open_ssl::decrypt_cbc(data, key, iv).to_ascii());
+    println!("{}", open_ssl::decrypt_cbc(data, key, iv).to_utf8());
 }
 
 #[allow(dead_code)]
 fn challenge_2_9() {
     let data = data::Bytes::read_utf8("YELLOW SUBMARINE");
-    assert_eq!(data.pad_pkcs7(20).to_ascii(), "YELLOW SUBMARINE\x04\x04\x04\x04");
+    assert_eq!(data.pad_pkcs7(20).to_utf8(), "YELLOW SUBMARINE\x04\x04\x04\x04");
 }
 
 #[allow(dead_code)]
@@ -54,7 +106,7 @@ fn challenge_1_8() {
 fn challenge_1_7() {
     let data = file::File::read_64_file("data_1_7").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
-    println!("{}", open_ssl::decrypt_ecb(data, key).to_ascii());
+    println!("{}", open_ssl::decrypt_ecb(data, key).to_utf8());
 }
 
 #[allow(dead_code)]
@@ -74,7 +126,7 @@ fn challenge_1_6() {
         let first = chunks.remove(0);
         let mut dist = 0;
         for chunk in chunks {
-            dist+= lang::hamming_dist(&first.to_ascii(), &chunk.to_ascii());
+            dist+= lang::hamming_dist(&first.to_utf8(), &chunk.to_utf8());
         }
         let score = dist as f64 / len as f64 / key_size_guess as f64;
         // Take smallest (Step 4)
@@ -96,7 +148,7 @@ fn challenge_1_6() {
     }
     println!("Key Guess: {}", key);
     let text = raw ^ data::Bytes::read_utf8(&key);
-    println!("Text: {}", text.to_ascii());
+    println!("Text: {}", text.to_utf8());
 }
 #[allow(dead_code)]
 fn challenge_1_5() {
@@ -105,7 +157,7 @@ fn challenge_1_5() {
     assert_eq!(text.clone() ^ key.clone(), "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f");
 
     let xor = data::Bytes::read_hex("0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f");
-    assert_eq!((xor ^ key).to_ascii(), text.to_ascii());
+    assert_eq!((xor ^ key).to_utf8(), text.to_utf8());
 }
 
 #[allow(dead_code)]
