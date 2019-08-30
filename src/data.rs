@@ -1,7 +1,6 @@
 
 use std::fmt;
 use std::ops;
-use std::cmp;
 use rand::prelude::*;
 
 #[derive(Debug, Clone)]
