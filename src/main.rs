@@ -9,6 +9,13 @@ mod oracle;
 
 use oracle::Oracle;
 
+/**
+ * Note: this main only runs challenge 2.17
+ * In order to run other challenges, line
+ * 20 should be replaced with the revelant
+ * function
+ */
+
 fn main() {
     challenge_2_17();
     println!("---------- Ok");
@@ -53,7 +60,7 @@ fn challenge_2_16() {
     let target = data::Bytes::read_utf8(";comment2=%20like%20a%20pound%20of%20bacon").truncate(16);
     let result = data::Bytes::read_utf8(";admin=true;aaaaaaaaa").truncate(16);
     // In theory, if I swap the zero and result^target block, it will cause all the nessecary 1 bit errors
-    let swapped = enc.swap_block((target ^ result).to_bytes(), ("comment1=cooking%20MCs;userdata=".len() + start_padding.len())/16);
+    let swapped = enc.replace_block((target ^ result).to_bytes(), ("comment1=cooking%20MCs;userdata=".len() + start_padding.len())/16);
 
     assert_eq!(oracle.get_role(enc), oracle::Role::USER);
     assert_eq!(oracle.get_role(swapped), oracle::Role::ADMIN);
@@ -62,8 +69,9 @@ fn challenge_2_16() {
 #[allow(dead_code)]
 fn challenge_2_15() {
     // I'm supposed to write a function to trim PKCS#7 padding,
-    // but I already wrote it. It's `.trim_pkcs7()`
-    // It doesn't panic if there isn't padding, it just assumes there wasn't anything to remove
+    // but I already wrote it. It's `data::Bytes::trim_pkcs7()`
+    // It doesn't panic if there isn't padding, it just assumes
+    // there wasn't anything to remove
 }
 
 #[allow(dead_code)]
@@ -117,7 +125,7 @@ fn challenge_2_13() {
     let new_cipher = oracle.encode_profile(email_padding);
     // oracle.print_raw(final_cipher.clone());
     // oracle.print_raw(data::Bytes::from_bytes(&final_cipher[16..32]));
-    let admin_profile = new_cipher.swap_block(&final_cipher[16..32], new_cipher.len()/16-1);
+    let admin_profile = new_cipher.replace_block(&final_cipher[16..32], new_cipher.len()/16-1);
     oracle.print_raw(admin_profile.clone());
 
     assert_eq!(oracle.get_role(admin_profile), oracle::Role::ADMIN);

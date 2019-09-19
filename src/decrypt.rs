@@ -25,6 +25,9 @@ pub fn decrypt_xor(data:Bytes, key:impl Iterator<Item = Bytes>, score:fn(&str)->
     (best, k, max)
 }
 
+/**
+ * Counts the number of repeated data buffers in `data`
+*/
 pub fn count_repeats(data:Vec<Bytes>) -> usize {
     let mut repeats = 0;
     for i in 0..data.len() {
@@ -38,6 +41,9 @@ pub fn count_repeats(data:Vec<Bytes>) -> usize {
     repeats
 }
 
+/**
+ * Decrpyts a single byte of AES ECB using the provided oracle, and the known data
+ */
 pub fn decrypt_byte(oracle : &impl Oracle, known : &Bytes, ignore_blocks : usize) -> Bytes {
     let pre = Bytes::read_utf8("a")*(BLOCK_SIZE-1 - known.len()%BLOCK_SIZE);
     let known_size = known.len()/BLOCK_SIZE + ignore_blocks;
@@ -49,6 +55,11 @@ pub fn decrypt_byte(oracle : &impl Oracle, known : &Bytes, ignore_blocks : usize
     }
     Bytes::zero(1)
 }
+/**
+ * Alternate decrypt byte for 2.17
+ * 
+ * TODO: Merge back into `decrypt_byte`
+ */
 pub fn decrypt_byte_2(oracle : &impl Oracle, known : &Bytes, prefix_size : usize) -> Bytes {
     // create prefix handler
     let pre = Bytes::read_utf8("a") * (BLOCK_SIZE - prefix_size%BLOCK_SIZE);

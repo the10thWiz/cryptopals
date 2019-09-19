@@ -10,17 +10,34 @@ enum DataType {
     UTF8
 }
 
+/**
+ * Convience struct for reading from data files
+ * 
+ * Use `.read_data()` to read the file as one buffer
+ * 
+ * Use as iterator to read lines as sperate buffers
+ */
 pub struct File {
     data: DataType,
     file: fs::File
 }
+
 impl File {
+    /**
+     * Create a `File` for Hex data
+     */
     pub fn read_hex_file(s:&str) -> File {
         File {data:DataType::HEX, file:fs::File::open(s).unwrap()}
     }
+    /**
+     * Create a `File` for Base 64 data
+     */
     pub fn read_64_file(s:&str) -> File {
         File {data:DataType::B64, file:fs::File::open(s).unwrap()}
     }
+    /**
+     * Create a `File` for UTF-8 data
+     */
     #[allow(dead_code)]
     pub fn read_utf8_file(s:&str) -> File {
         File {data:DataType::UTF8, file:fs::File::open(s).unwrap()}
@@ -28,6 +45,9 @@ impl File {
 }
 
 impl File {
+    /**
+     * Reads data from file to buffer
+     */
     pub fn read_bytes(&mut self) -> Bytes {
         match &self.data {
             DataType::HEX => {

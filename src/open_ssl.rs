@@ -4,7 +4,9 @@ use openssl::symm::{Cipher, Crypter, Mode};
 
 pub const BLOCK_SIZE : usize = 16;
 
-#[allow(dead_code)]
+/**
+ * Encrypts data using AES ECB mode
+ */
 pub fn encrypt_ecb(input: Bytes, key: Bytes) -> Bytes {
     let mut encrypter = Crypter::new(Cipher::aes_128_ecb(), Mode::Encrypt, key.to_bytes(), None).unwrap();
     encrypter.pad(false);
@@ -20,7 +22,9 @@ pub fn encrypt_ecb(input: Bytes, key: Bytes) -> Bytes {
     ret
 }
 
-#[allow(dead_code)]
+/**
+ * Decrypts data using AES ECB mode
+ */
 pub fn decrypt_ecb(input: Bytes, key: Bytes) -> Bytes {
     let mut decrypter = Crypter::new(Cipher::aes_128_ecb(), Mode::Decrypt, key.to_bytes(), None).unwrap();
     decrypter.pad(false);
@@ -36,7 +40,9 @@ pub fn decrypt_ecb(input: Bytes, key: Bytes) -> Bytes {
     ret
 }
 
-#[allow(dead_code)]
+/**
+ * Encrypts data using AES CBC mode
+ */
 pub fn encrypt_cbc(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
     let blocks = input.pad_pkcs7(BLOCK_SIZE-(input.len()%BLOCK_SIZE)).split(BLOCK_SIZE);
     let mut last = iv;
@@ -48,7 +54,9 @@ pub fn encrypt_cbc(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
     ret
 }
 
-#[allow(dead_code)]
+/**
+ * Decrypts data using AES CBC mode
+ */
 pub fn decrypt_cbc(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
     let blocks = input.split(BLOCK_SIZE);
     let mut last = iv;

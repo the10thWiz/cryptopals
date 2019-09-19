@@ -3,11 +3,25 @@ use crate::data::Bytes;
 use crate::open_ssl::*;
 use rand::prelude::*;
 
+/**
+ * Genaric Oracle trait, for oracle challenges
+ */
 pub trait Oracle {
+    /**
+     * Encrpyts provided data
+     */
     fn encrypt(&self, input : Bytes) -> Bytes;
+    /**
+     * Decrypts encrypted data, and prints it to console
+     * 
+     * (For debugging)
+     */
     fn decrypt(&self, input : Bytes);
 }
 
+/**
+ * Oracle for testing ECB/CBC mode detection
+ */
 pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
     let mut rng = thread_rng();
 
@@ -19,6 +33,9 @@ pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
     }
 }
 
+/**
+ * Simple Oracle for 2.12
+ */
 pub struct OracleSimple {
     key : Bytes
 }
@@ -38,6 +55,9 @@ impl Oracle for OracleSimple {
     }
 }
 
+/**
+ * Profile Oracle for 2.13
+ */
 pub struct ProfileOracle {
     key : Bytes
 }
@@ -76,6 +96,9 @@ impl ProfileOracle {
     }
 }
 
+/**
+ * Random Oracle for 2.14
+ */
 pub struct RandomOracle {
     key : Bytes,
     target : Bytes,
@@ -104,6 +127,9 @@ impl std::fmt::Display for RandomOracle {
     }
 }
 
+/**
+ * Profile Oracle (CBC mode) for 2.16
+ */
 pub struct ProfileCBCOracle {
     key : Bytes, iv : Bytes
 }
@@ -137,7 +163,9 @@ impl ProfileCBCOracle {
     }
 }
 
-
+/**
+ * Padding Oracle (CBC mode) for 2.17
+ */
 pub struct CBCPaddingOracle {
     key : Bytes
 }
