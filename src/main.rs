@@ -7,59 +7,149 @@ mod decrypt;
 mod open_ssl;
 mod oracle;
 
-use std::time::Instant;
+use oracle::Oracle;
 
 fn main() {
-    println!("-------------");
-    let start = Instant::now();
-    challenge_2_12();
-    println!("-------------\nSuccess: {}ms", start.elapsed().as_millis() as u64);
+    challenge_2_17();
+    println!("---------- Ok");
+}
+
+#[allow(dead_code)]
+fn challenge_2_17() {
+    let oracle = oracle::CBCPaddingOracle::new();
+
+    let enc = oracle.encrypt();
+    println!("{:16X}", enc.1);
+    // To attack the last byte, edit the last byte of the second to last block
+    // let mut known = data::Bytes::zero(0);
+    for k in keys::KeyGen::new(1) {
+        let mut edited = enc.1.clone();
+        edited[enc.1.len() - 18] = 0xFFu8;
+        edited[enc.1.len() - 17] = k[0];
+        if oracle.check_padding((enc.0.clone(), edited.clone())) {
+            println!("{}: {:02X} ^ {:02X} = {:02X}", 17, k[0], 01u8, k[0] ^ 01u8);
+            oracle.print_raw((enc.0.clone(), edited));
+            break;
+        }
+    }
+    oracle.print_raw(enc);
+    // println!("{:16X}", known);
+}
+
+#[allow(dead_code)]
+fn challenge_2_16() {
+    let oracle = oracle::ProfileCBCOracle::new();
+
+    // edit string to include ";admin=true;"
+    // step one, create input to block align
+    let start_padding = data::Bytes::read_utf8("a") * (16 - "comment1=cooking%20MCs;userdata=".len()%16);
+
+    // step two, create encrpted version
+    let enc = oracle.encode_profile(start_padding.clone() + data::Bytes::zero(16));
+    // enc = blocks + zero*16 + ";comment2=%20lik" + "e%20a%20pound%20of%20bacon"
+    // therefore, I need to edit zero block of the cipertext, to edit the following block
+
+    // target to edit, and result to get
+    let target = data::Bytes::read_utf8(";comment2=%20like%20a%20pound%20of%20bacon").truncate(16);
+    let result = data::Bytes::read_utf8(";admin=true;aaaaaaaaa").truncate(16);
+    // In theory, if I swap the zero and result^target block, it will cause all the nessecary 1 bit errors
+    let swapped = enc.swap_block((target ^ result).to_bytes(), ("comment1=cooking%20MCs;userdata=".len() + start_padding.len())/16);
+
+    assert_eq!(oracle.get_role(enc), oracle::Role::USER);
+    assert_eq!(oracle.get_role(swapped), oracle::Role::ADMIN);
+}
+
+#[allow(dead_code)]
+fn challenge_2_15() {
+    // I'm supposed to write a function to trim PKCS#7 padding,
+    // but I already wrote it. It's `.trim_pkcs7()`
+    // It doesn't panic if there isn't padding, it just assumes there wasn't anything to remove
+}
+
+#[allow(dead_code)]
+fn challenge_2_14() {
+    let oracle = oracle::RandomOracle::new();
+
+    // Calculate prefix size (in blocks)
+    let duplicate_location = oracle.encrypt(data::Bytes::read_utf8("a")*48).split(16);
+    let mut num_blocks = 0;
+    for i in 1..duplicate_location.len() {
+        if duplicate_location[i-1] == duplicate_location[i] {
+            num_blocks = i-1;
+            break;
+        }
+    }
+
+    let mut prefix_len = 16;
+    for i in 0..16 {
+        let mut test = data::Bytes::read_utf8("a")*48;
+        test[i] = 0u8;
+        let enc = oracle.encrypt(test).split(16);
+        if duplicate_location[num_blocks] != enc[num_blocks] {
+            prefix_len = i;
+            break;
+        }
+    };
+    // Now I can ignore prefix blocks
+    let mut known = data::Bytes::zero(0);
+    let len = oracle.encrypt(known.clone()).len();
+    
+    for _ in num_blocks*16 - prefix_len..len {
+        known+= decrypt::decrypt_byte_2(&oracle, &known, num_blocks*16 - prefix_len);
+    }
+    println!("{}", known);
+}
+
+#[allow(dead_code)]
+fn challenge_2_13() {
+    let oracle = oracle::ProfileOracle::new();
+
+    // Guess oracle padding = pkcs_7
+    // Therefore, final part should be "admin"+padding to BLOCK_SIZE
+    let final_plain = data::Bytes::read_utf8("admin").pad_pkcs7(16);
+    // first part is "email=", so add padding to make it one block: 
+    let start_padding = data::Bytes::read_utf8("a") * (16-"email=".len());
+    
+    // create block
+    let final_cipher = oracle.encode_profile(start_padding + final_plain);
+    // create new block, with "user"+padding as final block
+    let email_padding = data::Bytes::read_utf8("a") * (16-"email=&uid=10&role=".len()%16);
+    let new_cipher = oracle.encode_profile(email_padding);
+    // oracle.print_raw(final_cipher.clone());
+    // oracle.print_raw(data::Bytes::from_bytes(&final_cipher[16..32]));
+    let admin_profile = new_cipher.swap_block(&final_cipher[16..32], new_cipher.len()/16-1);
+    oracle.print_raw(admin_profile.clone());
+
+    assert_eq!(oracle.get_role(admin_profile), oracle::Role::ADMIN);
 }
 
 #[allow(dead_code)]
 fn challenge_2_12() {
-    let unknown = data::Bytes::read_64("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
-    gaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IH\
-    N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK");
-    let oracle = oracle::Oracle::new();
+    let oracle = oracle::OracleSimple::new();
     
     // 1. Block Size
-    let block_size = oracle.encrypt_ecb(data::Bytes::read_utf8("a")).len();
+    let len = oracle.encrypt(data::Bytes::zero(0)).len();
 
     // 2. ECB mode
-    let vec = oracle.encrypt_ecb(data::Bytes::read_utf8("a")*64).split(16);
+    let vec = oracle.encrypt(data::Bytes::read_utf8("a")*64).split(16);
     if vec[0] != vec[1] {
         panic!("Oracle doesn't use ECB");
     }
 
     // 3. 1 byte short
     let mut known = data::Bytes::zero(0);
-    // decrypt_byte(&oracle, block_size, &known, unknown.clone());
-    for _ in 0..unknown.len() {
-        known+= decrypt_byte(&oracle, block_size, &known, unknown.clone());
+    for _ in 0..len {
+        known+= decrypt::decrypt_byte(&oracle, &known, 0);
     }
-    println!("{}", known.to_utf8());
+    println!("{}", known);
     
-}
-
-fn decrypt_byte(oracle : &oracle::Oracle, block_size : usize, known : &data:: Bytes, unknown : data::Bytes) -> data::Bytes {
-    let pre = data::Bytes::read_utf8("a")*(block_size-1 - known.len()%block_size);
-    let known_size = known.len()/block_size;
-    
-    let enc = oracle.encrypt_ecb(pre.clone()+unknown.clone()).truncate_start(known_size*block_size).truncate(block_size);
-    for k in keys::KeyGen::new(1) {
-        if enc == oracle.encrypt_ecb(pre.clone()+known.clone()+k.clone()).truncate_start(known_size*block_size).truncate(block_size) {
-            return k;
-        }
-    }
-    data::Bytes::zero(1)
 }
 
 #[allow(dead_code)]
 fn challenge_2_11() {
     for i in 0..1000 {
         println!("Trial {}", i);
-        let (data, cbc) = open_ssl::encryption_oracle(data::Bytes::read_utf8("a") * 100);
+        let (data, cbc) = oracle::encryption_oracle(data::Bytes::read_utf8("a") * 100);
         // println!("data: {}\n{}", data, if cbc {"CBC"} else {"ECB"});
 
         let vec = data.split(16);
@@ -77,7 +167,7 @@ fn challenge_2_10() {
     let data = file::File::read_64_file("data_2_10").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
     let iv = data::Bytes::read_utf8("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
-    println!("{}", open_ssl::decrypt_cbc(data, key, iv).to_utf8());
+    println!("{}", open_ssl::decrypt_cbc(data, key, iv));
 }
 
 #[allow(dead_code)]
@@ -98,7 +188,7 @@ fn challenge_1_8() {
             detected = text;
         }
     }
-    println!("Ciphered: {}", detected.to_hex());
+    println!("Ciphered: {:X}", detected);
     println!("Repeats: {}", max);
 }
 
@@ -106,7 +196,7 @@ fn challenge_1_8() {
 fn challenge_1_7() {
     let data = file::File::read_64_file("data_1_7").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
-    println!("{}", open_ssl::decrypt_ecb(data, key).to_utf8());
+    println!("{}", open_ssl::decrypt_ecb(data, key));
 }
 
 #[allow(dead_code)]
@@ -148,7 +238,7 @@ fn challenge_1_6() {
     }
     println!("Key Guess: {}", key);
     let text = raw ^ data::Bytes::read_utf8(&key);
-    println!("Text: {}", text.to_utf8());
+    println!("Text: {}", text);
 }
 #[allow(dead_code)]
 fn challenge_1_5() {

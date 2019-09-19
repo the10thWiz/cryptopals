@@ -1,9 +1,14 @@
 
 use std::fmt;
 use std::ops;
+use std::ops::Range;
+use std::ops::RangeFrom;
+use std::ops::RangeTo;
+use std::ops::RangeFull;
 use rand::prelude::*;
+use crate::open_ssl::BLOCK_SIZE;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Bytes {
     bytes:Vec<u8>
 }
@@ -90,7 +95,7 @@ impl Bytes {
         Bytes {bytes: v}
     }
     pub fn from_bytes(v: &[u8]) -> Bytes {
-        let mut ret = Bytes {bytes: Vec::new()};
+        let mut ret = Bytes {bytes: Vec::with_capacity(v.len())};
         for val in v {
             ret.bytes.push(*val);
         }
@@ -111,47 +116,52 @@ impl Bytes {
         Bytes {bytes: ret}
     }
     pub fn to_hex(&self) -> String {
-        let mut ret = String::default();
+        let mut ret = String::with_capacity(self.bytes.len()*2);
         for b in self.bytes.iter() {
-            ret.push_str(match b / 0x10 {
-                0x00 => "0",
-                0x01 => "1",
-                0x02 => "2",
-                0x03 => "3",
-                0x04 => "4",
-                0x05 => "5",
-                0x06 => "6",
-                0x07 => "7",
-                0x08 => "8",
-                0x09 => "9",
-                0x0A => "A",
-                0x0B => "B",
-                0x0C => "C",
-                0x0D => "D",
-                0x0E => "E",
-                0x0F => "F",
-                _ => panic!("This Error should never be possible")
-            });
-            ret.push_str(match b % 0x10 {
-                0x00 => "0",
-                0x01 => "1",
-                0x02 => "2",
-                0x03 => "3",
-                0x04 => "4",
-                0x05 => "5",
-                0x06 => "6",
-                0x07 => "7",
-                0x08 => "8",
-                0x09 => "9",
-                0x0A => "A",
-                0x0B => "B",
-                0x0C => "C",
-                0x0D => "D",
-                0x0E => "E",
-                0x0F => "F",
-                _ => panic!("This Error should never be possible")
-            });
+            ret+= &Bytes::byte_to_hex(*b);
         }
+        ret
+    }
+    fn byte_to_hex(b : u8) -> String {
+        let mut ret = String::with_capacity(2);
+        ret+= match b / 0x10 {
+            0x00 => "0",
+            0x01 => "1",
+            0x02 => "2",
+            0x03 => "3",
+            0x04 => "4",
+            0x05 => "5",
+            0x06 => "6",
+            0x07 => "7",
+            0x08 => "8",
+            0x09 => "9",
+            0x0A => "A",
+            0x0B => "B",
+            0x0C => "C",
+            0x0D => "D",
+            0x0E => "E",
+            0x0F => "F",
+            _ => panic!("This Error should never be possible")
+        };
+        ret+= match b % 0x10 {
+            0x00 => "0",
+            0x01 => "1",
+            0x02 => "2",
+            0x03 => "3",
+            0x04 => "4",
+            0x05 => "5",
+            0x06 => "6",
+            0x07 => "7",
+            0x08 => "8",
+            0x09 => "9",
+            0x0A => "A",
+            0x0B => "B",
+            0x0C => "C",
+            0x0D => "D",
+            0x0E => "E",
+            0x0F => "F",
+            _ => panic!("This Error should never be possible")
+        };
         ret
     }
     pub fn to_utf8(&self) -> String {
@@ -369,6 +379,19 @@ impl Bytes {
         }
         ret
     }
+    pub fn trim_pkcs7(&self) -> Bytes {
+        let pad_num = self.bytes[self.bytes.len()-1] as usize;
+        // println!("{}", pad_num);
+        if pad_num < BLOCK_SIZE {
+            for b in self.bytes.len()-pad_num..self.bytes.len() {
+                if self.bytes[b] != pad_num as u8 {
+                    return self.clone();
+                }
+            }
+            return self.clone().truncate(self.bytes.len()-pad_num);
+        }
+        self.clone()
+    }
     pub fn truncate(&self, len:usize) -> Bytes {
         let mut ret = self.clone();
         while ret.bytes.len() > len {
@@ -382,6 +405,26 @@ impl Bytes {
             ret.bytes.remove(0);
         }
         ret
+    }
+    pub fn swap(&self, part : &[u8], index : usize) -> Bytes {
+        if part.len()+index > self.bytes.len() {
+            panic!("Part is to long to fit");
+        }
+        let mut ret = self.bytes.clone();
+        for i in 0..part.len() {
+            ret[i+index] = part[i];
+        }
+        Bytes {bytes:ret}
+    }
+    pub fn swap_block(&self, part:&[u8], block : usize) -> Bytes {
+        if part.len()+block*16 > self.bytes.len() {
+            panic!("Part is to long to fit");
+        }
+        let mut ret = self.bytes.clone();
+        for i in 0..part.len() {
+            ret[i+block*16] = part[i];
+        }
+        Bytes {bytes:ret}
     }
     pub fn get(&self, i:usize) -> char {
         return self.bytes[i] as char;
@@ -415,6 +458,15 @@ impl Bytes {
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
+    pub fn remove(&self, val : u8) -> Bytes {
+        let mut ret = Vec::new();
+        for b in self.bytes.iter() {
+            if *b != val {
+                ret.push(*b);
+            }
+        }
+        Bytes {bytes: ret}
+    }
 }
 
 impl ops::BitXor for Bytes {
@@ -446,12 +498,92 @@ impl ops::Add<Self> for Bytes {
         Self {bytes: ret}
     }
 }
+impl ops::Add<Bytes> for u8 {
+    type Output = Bytes;
+    fn add(self, other: Bytes) -> Bytes {
+        let mut ret  = other.bytes.clone();
+        ret.insert(0, self);
+        Bytes {bytes: ret}
+    }
+}
 impl ops::AddAssign<Self> for Bytes {
     fn add_assign(&mut self, other: Self) {
         self.bytes.append(&mut other.bytes.clone());
     }
 }
+impl ops::Add<u8> for Bytes {
+    type Output = Self;
+    fn add(self, other: u8) -> Self {
+        let mut ret  = self.bytes.clone();
+        ret.push(other);
+        Self {bytes: ret}
+    }
+}
+impl ops::AddAssign<u8> for Bytes {
+    fn add_assign(&mut self, other: u8) {
+        self.bytes.push(other);
+    }
+}
+impl ops::Index<usize> for Bytes {
+    type Output = u8;
 
+    fn index(&self, i : usize) -> &Self::Output {
+        &self.bytes[i]
+    }
+}
+impl ops::IndexMut<usize> for Bytes {
+    fn index_mut(&mut self, i : usize) -> &mut Self::Output {
+        &mut self.bytes[i]
+    }
+}
+impl ops::Index<Range<usize>> for Bytes {
+    type Output = [u8];
+
+    fn index(&self, i : Range<usize>) -> &Self::Output {
+        &self.bytes[i]
+    }
+}
+impl ops::IndexMut<Range<usize>> for Bytes {
+    fn index_mut(&mut self, i : Range<usize>) -> &mut Self::Output {
+        &mut self.bytes[i]
+    }
+}
+impl ops::Index<RangeFrom<usize>> for Bytes {
+    type Output = [u8];
+
+    fn index(&self, i : RangeFrom<usize>) -> &Self::Output {
+        &self.bytes[i]
+    }
+}
+impl ops::IndexMut<RangeFrom<usize>> for Bytes {
+    fn index_mut(&mut self, i : RangeFrom<usize>) -> &mut Self::Output {
+        &mut self.bytes[i]
+    }
+}
+impl ops::Index<RangeTo<usize>> for Bytes {
+    type Output = [u8];
+
+    fn index(&self, i : RangeTo<usize>) -> &Self::Output {
+        &self.bytes[i]
+    }
+}
+impl ops::IndexMut<RangeTo<usize>> for Bytes {
+    fn index_mut(&mut self, i : RangeTo<usize>) -> &mut Self::Output {
+        &mut self.bytes[i]
+    }
+}
+impl ops::Index<RangeFull> for Bytes {
+    type Output = [u8];
+
+    fn index(&self, _ : RangeFull) -> &Self::Output {
+        &self.bytes
+    }
+}
+impl ops::IndexMut<RangeFull> for Bytes {
+    fn index_mut(&mut self, _ : RangeFull) -> &mut Self::Output {
+        &mut self.bytes
+    }
+}
 
 impl ops::Mul<usize> for Bytes {
     type Output = Self;
@@ -523,6 +655,72 @@ impl std::cmp::Ord for Bytes {
 
 impl fmt::Display for Bytes {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.to_hex())
+        if let Some(width) = f.width() {
+            let mut i = 0;
+            let mut s = String::new();
+            for b in self.bytes.iter() {
+                s+= &(*b as char).to_string();
+                i+= 1;
+                if i == width {
+                    s+= "\n";
+                    i = 0;
+                }
+            }
+            write!(f, "{}", s)
+        }else {
+            write!(f, "{}", self.to_utf8())
+        }
+    }
+}
+impl fmt::Debug for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(width) = f.width() {
+            let mut i = 0;
+            let mut s = String::default();
+            for b in self.bytes.iter() {
+                if (*b as char).is_ascii_graphic() {
+                    s+= " ";
+                    s+= &(*b as char).to_string();
+                }else {
+                    s+= &Bytes::byte_to_hex(*b);
+                }
+                i+= 1;
+                if i == width {
+                    s+= "\n";
+                    i = 0;
+                }
+            }
+            write!(f, "{}", s)
+        }else {
+            let mut s = String::default();
+            for b in self.bytes.iter() {
+                if (*b as char).is_ascii_graphic() {
+                    s+= " ";
+                    s+= &(*b as char).to_string();
+                }else {
+                    s+= &Bytes::byte_to_hex(*b);
+                }
+            }
+            write!(f, "{}", s)
+        }
+    }
+}
+impl fmt::UpperHex for Bytes {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(width) = f.width() {
+            let mut i = 0;
+            let mut s = String::default();
+            for b in self.bytes.iter() {
+                s+= &Bytes::byte_to_hex(*b);
+                i+= 1;
+                if i == width {
+                    s+= "\n";
+                    i = 0;
+                }
+            }
+            write!(f, "{}", s)
+        }else {
+            write!(f, "{}", self.to_hex())
+        }
     }
 }

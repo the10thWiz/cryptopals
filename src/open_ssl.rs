@@ -27,7 +27,7 @@ pub fn decrypt_ecb(input: Bytes, key: Bytes) -> Bytes {
     let mut ret = Bytes::zero(0);
     for i in 0..(input.len() as f64/BLOCK_SIZE as f64).ceil() as usize {
         let mut output = [0u8; BLOCK_SIZE*2];
-        let len = decrypter.update(&input.to_bytes()[i*BLOCK_SIZE..i*BLOCK_SIZE+BLOCK_SIZE], &mut output).unwrap();
+        let len = decrypter.update(&input[i*BLOCK_SIZE..i*BLOCK_SIZE+BLOCK_SIZE], &mut output).unwrap();
         ret+= Bytes::from_bytes(&output).truncate(len);
     }
     let mut output = [0u8; BLOCK_SIZE*2];
@@ -42,8 +42,8 @@ pub fn encrypt_cbc(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
     let mut last = iv;
     let mut ret = Bytes::zero(0);
     for block in blocks {
-        ret+= encrypt_ecb(last ^ block.clone(), key.clone());
-        last = block;
+        last = encrypt_ecb(last ^ block.clone(), key.clone());
+        ret+= last.clone();
     }
     ret
 }
@@ -58,17 +58,4 @@ pub fn decrypt_cbc(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
         last = block;
     }
     ret
-}
-
-use rand::prelude::*;
-
-pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
-    let mut rng = thread_rng();
-
-    let plain = (Bytes::rand(rng.gen_range(5, 10)) + input + Bytes::rand(rng.gen_range(5, 10))).pad_pkcs7(BLOCK_SIZE);
-    if rng.gen() {
-        return (encrypt_cbc(plain, Bytes::rand(BLOCK_SIZE), Bytes::rand(BLOCK_SIZE)), true);
-    }else {
-        return (encrypt_ecb(plain, Bytes::rand(BLOCK_SIZE)), false);
-    }
 }
