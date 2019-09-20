@@ -182,7 +182,7 @@ fn get_rand() -> Bytes {
         7 => Bytes::read_64("MDAwMDA3SSdtIG9uIGEgcm9sbCwgaXQncyB0aW1lIHRvIGdvIHNvbG8="),
         8 => Bytes::read_64("MDAwMDA4b2xsaW4nIGluIG15IGZpdmUgcG9pbnQgb2g="),
         9 => Bytes::read_64("MDAwMDA5aXRoIG15IHJhZy10b3AgZG93biBzbyBteSBoYWlyIGNhbiBibG93"),
-        _ => panic!("The thread_rng() generate a value outside the given range")
+        _ => panic!("The thread_rng() generated a value outside the given range")
     };
     // println!("{:16X}", r);
     r
@@ -201,6 +201,6 @@ impl CBCPaddingOracle {
         dec.trim_pkcs7().len() < dec.len()
     }
     pub fn print_raw(&self, enc: (Bytes, Bytes)) {
-        println!("{:16X}", decrypt_cbc(enc.1, self.key.clone(), enc.0));
+        println!("{}", decrypt_cbc(enc.1, self.key.clone(), enc.0).trim_pkcs7());
     }
 }
