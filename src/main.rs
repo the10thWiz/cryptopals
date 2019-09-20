@@ -17,12 +17,17 @@ use oracle::Oracle;
  */
 
 fn main() {
-    challenge_2_17();
+    challenge_3_18();
     println!("---------- Ok");
 }
 
 #[allow(dead_code)]
-fn challenge_2_17() {
+fn challenge_3_18() {
+
+}
+
+#[allow(dead_code)]
+fn challenge_3_17() {
     let oracle = oracle::CBCPaddingOracle::new();
 
     let enc = oracle.encrypt();
