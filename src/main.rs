@@ -26,21 +26,15 @@ fn challenge_2_17() {
     let oracle = oracle::CBCPaddingOracle::new();
 
     let enc = oracle.encrypt();
-    println!("{:16X}", enc.1);
-    // To attack the last byte, edit the last byte of the second to last block
-    // let mut known = data::Bytes::zero(0);
-    for k in keys::KeyGen::new(1) {
-        let mut edited = enc.1.clone();
-        edited[enc.1.len() - 18] = 0xFFu8;
-        edited[enc.1.len() - 17] = k[0];
-        if oracle.check_padding((enc.0.clone(), edited.clone())) {
-            println!("{}: {:02X} ^ {:02X} = {:02X}", 17, k[0], 01u8, k[0] ^ 01u8);
-            oracle.print_raw((enc.0.clone(), edited));
-            break;
-        }
+
+    let mut last = enc.0.clone();
+    let mut known = data::Bytes::zero(0);
+    for block in enc.1.split(16) {
+        known+= decrypt::attack_byte_padding(last.clone(), block.clone(), &oracle);
+        last = block;
     }
     oracle.print_raw(enc);
-    // println!("{:16X}", known);
+    println!("{}", known.trim_pkcs7());
 }
 
 #[allow(dead_code)]

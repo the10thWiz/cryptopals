@@ -1,6 +1,6 @@
 
 use crate::data::Bytes;
-use crate::oracle::Oracle;
+use crate::oracle::{Oracle, CBCPaddingOracle};
 use crate::keys;
 use crate::open_ssl::BLOCK_SIZE;
 
@@ -77,3 +77,29 @@ pub fn decrypt_byte_2(oracle : &impl Oracle, known : &Bytes, prefix_size : usize
     Bytes::zero(1)
 }
 
+/**
+ * 
+ */
+pub fn attack_byte_padding(iv: Bytes, block: Bytes, oracle: &CBCPaddingOracle) -> Bytes {
+    let mut known = Bytes::zero(16);
+    for i in 1..17 {
+        for k in keys::KeyGen::new(1) {
+            let mut edited = iv.clone();
+            if i < 16 {
+                edited[15 - i] = 0xFFu8;
+            }
+            edited[16 - i] = k[0];
+            for j in 1..i {
+                edited[16 - j] = (known[16 - j] ^ i as u8) ^ iv[16 - j];
+            }
+            // println!("{:16X}", enc.1.clone() ^ edited.clone());
+            if oracle.check_padding((edited, block.clone())) {
+                // println!("{:02X}", (enc.1[enc.1.len() - 17] ^ k[0]) ^ i as u8);
+                // oracle.print_raw((enc.0.clone(), edited));
+                known[16 - i] = (iv[16 - i] ^ k[0]) ^ i as u8;
+                break;
+            }
+        }
+    }
+    known
+}
