@@ -459,7 +459,7 @@ impl Bytes {
     pub fn trim_pkcs7(&self) -> Bytes {
         let pad_num = self.bytes[self.bytes.len()-1] as usize;
         // println!("{}", pad_num);
-        if pad_num < BLOCK_SIZE {
+        if pad_num <= BLOCK_SIZE {
             for b in self.bytes.len()-pad_num..self.bytes.len() {
                 if self.bytes[b] != pad_num as u8 {
                     return self.clone();
