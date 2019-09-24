@@ -1,36 +1,35 @@
-
+use crate::open_ssl::BLOCK_SIZE;
+use rand::prelude::*;
 use std::fmt;
 use std::ops;
 use std::ops::Range;
 use std::ops::RangeFrom;
-use std::ops::RangeTo;
 use std::ops::RangeFull;
-use rand::prelude::*;
-use crate::open_ssl::BLOCK_SIZE;
+use std::ops::RangeTo;
 
 /**
  * A Standard buffer for binary data. This struct offers a variety of
  * convience methods for manipulating the data buffered inside.
- * 
+ *
  * The following operator overloads are defined:
- * 
+ *
  * Binary xor => xors raw data, byte for byte. right will be repeated
  * if it is shorter
- * 
+ *
  * Add => Concatinates buffers
- * 
+ *
  * Index => extracts raw data at index (u8), or slice(&[u8])
- * 
+ *
  * Multiply => repeats buffer x number of times
- * 
+ *
  * Equals/Compare => compares raw data in buffers
- * 
+ *
  * Display and Debug => Defualts to printing as utf-8, UpperHex is also
  * implemented
  */
 #[derive(Clone)]
 pub struct Bytes {
-    bytes:Vec<u8>
+    bytes: Vec<u8>,
 }
 
 #[allow(dead_code)]
@@ -39,7 +38,7 @@ impl Bytes {
      * Reads Hex values from `s`
      */
     pub fn read_hex(s: &str) -> Bytes {
-        let mut ret = Vec::with_capacity(s.len()/2);
+        let mut ret = Vec::with_capacity(s.len() / 2);
         let mut cur = 0u8;
         let mut top = true;
         for c in s.chars() {
@@ -60,12 +59,12 @@ impl Bytes {
                 'D' | 'd' => 0xDu8,
                 'E' | 'e' => 0xEu8,
                 'F' | 'f' => 0xFu8,
-                _ => panic!("Unexpected Character {}", c)
+                _ => panic!("Unexpected Character {}", c),
             };
             if top {
                 cur = tmp << 4;
                 top = false;
-            }else {
+            } else {
                 ret.push(cur | tmp);
                 top = true;
             }
@@ -73,7 +72,7 @@ impl Bytes {
         if !top {
             ret.push(cur);
         }
-        Bytes {bytes: ret}
+        Bytes { bytes: ret }
     }
     /**
      * Reads Base 64 values from `s`
@@ -87,28 +86,28 @@ impl Bytes {
             if mask == 0 {
                 carry = sextet << 2;
                 mask = 0b11111100;
-            }else if mask == 0b11111100 {
-                ret.push((carry&mask) | (sextet >> 4));
+            } else if mask == 0b11111100 {
+                ret.push((carry & mask) | (sextet >> 4));
                 carry = sextet << 4;
                 mask = 0b11110000;
-            }else if mask == 0b11110000 {
-                ret.push((carry&mask) | (sextet >> 2));
+            } else if mask == 0b11110000 {
+                ret.push((carry & mask) | (sextet >> 2));
                 carry = sextet << 6;
                 mask = 0b11000000;
-            }else if mask == 0b11000000 {
-                ret.push((carry&mask) | (sextet >> 0));
+            } else if mask == 0b11000000 {
+                ret.push((carry & mask) | (sextet >> 0));
                 carry = 0;
                 mask = 0;
             }
         }
         if mask == 0b11111100 {
-            ret.push((carry&mask) | (0 >> 4));
-        }else if mask == 0b11110000 {
-            ret.push((carry&mask) | (0 >> 2));
-        }else if mask == 0b11000000 {
-            ret.push((carry&mask) | (0 >> 0));
+            ret.push((carry & mask) | (0 >> 4));
+        } else if mask == 0b11110000 {
+            ret.push((carry & mask) | (0 >> 2));
+        } else if mask == 0b11000000 {
+            ret.push((carry & mask) | (0 >> 0));
         }
-        Bytes {bytes: ret}
+        Bytes { bytes: ret }
     }
     /**
      * Reads UTF-8 values from `s`
@@ -118,19 +117,21 @@ impl Bytes {
         for c in s.bytes() {
             ret.push(c);
         }
-        Bytes {bytes: ret}
+        Bytes { bytes: ret }
     }
     /**
      * Reads raw u8 values from `v`
      */
     pub fn from_vec(v: Vec<u8>) -> Bytes {
-        Bytes {bytes: v}
+        Bytes { bytes: v }
     }
     /**
      * Reads raw u8 values from `v`
      */
     pub fn from_bytes(v: &[u8]) -> Bytes {
-        let mut ret = Bytes {bytes: Vec::with_capacity(v.len())};
+        let mut ret = Bytes {
+            bytes: Vec::with_capacity(v.len()),
+        };
         for val in v {
             ret.bytes.push(*val);
         }
@@ -145,7 +146,7 @@ impl Bytes {
         for _ in 0..size {
             ret.push(0u8);
         }
-        Bytes {bytes: ret}
+        Bytes { bytes: ret }
     }
     /**
      * Generates a new buffer of length `size`, filled
@@ -156,21 +157,21 @@ impl Bytes {
         for _ in 0..size {
             ret.push(random());
         }
-        Bytes {bytes: ret}
+        Bytes { bytes: ret }
     }
     /**
      * Converts raw data buffer to a Hex encoded string
      */
     pub fn to_hex(&self) -> String {
-        let mut ret = String::with_capacity(self.bytes.len()*2);
+        let mut ret = String::with_capacity(self.bytes.len() * 2);
         for b in self.bytes.iter() {
-            ret+= &Bytes::byte_to_hex(*b);
+            ret += &Bytes::byte_to_hex(*b);
         }
         ret
     }
-    fn byte_to_hex(b : u8) -> String {
+    fn byte_to_hex(b: u8) -> String {
         let mut ret = String::with_capacity(2);
-        ret+= match b / 0x10 {
+        ret += match b / 0x10 {
             0x00 => "0",
             0x01 => "1",
             0x02 => "2",
@@ -187,9 +188,9 @@ impl Bytes {
             0x0D => "D",
             0x0E => "E",
             0x0F => "F",
-            _ => panic!("This Error should never be possible")
+            _ => panic!("This Error should never be possible"),
         };
-        ret+= match b % 0x10 {
+        ret += match b % 0x10 {
             0x00 => "0",
             0x01 => "1",
             0x02 => "2",
@@ -206,7 +207,7 @@ impl Bytes {
             0x0D => "D",
             0x0E => "E",
             0x0F => "F",
-            _ => panic!("This Error should never be possible")
+            _ => panic!("This Error should never be possible"),
         };
         ret
     }
@@ -229,26 +230,26 @@ impl Bytes {
         let mut leftover = 0u8;
         let mut mask = 0u8;
         for b in self.bytes.iter() {
-            if       mask == 0b000000 {
+            if mask == 0b000000 {
                 ret.push(Bytes::sextet_to_64(b >> 2u8));
                 mask = 0b000011;
                 leftover = b & mask;
-            }else if mask == 0b000011 {
+            } else if mask == 0b000011 {
                 ret.push(Bytes::sextet_to_64((b >> 4u8) | (leftover << 4u8)));
                 mask = 0b001111;
                 leftover = b & mask;
-            }else if mask == 0b001111 {
+            } else if mask == 0b001111 {
                 ret.push(Bytes::sextet_to_64((b >> 6u8) | (leftover << 2u8)));
                 ret.push(Bytes::sextet_to_64(b & 0b111111));
                 mask = 0;
                 leftover = 0;
-            }else {
+            } else {
                 break;
             }
         }
         ret
     }
-    fn sextet_to_64(i:u8) -> char {
+    fn sextet_to_64(i: u8) -> char {
         match i {
             00 => 'A',
             01 => 'B',
@@ -314,10 +315,10 @@ impl Bytes {
             61 => '9',
             62 => '+',
             63 => '/',
-            _ => panic!("This error should never occur")
+            _ => panic!("This error should never occur"),
         }
     }
-    fn b64_to_sextet(i:char) -> u8 {
+    fn b64_to_sextet(i: char) -> u8 {
         match i {
             'A' => 00,
             'B' => 01,
@@ -384,7 +385,7 @@ impl Bytes {
             '+' => 62,
             '/' => 63,
             '=' => 00,
-            _ => panic!("This error should never occur")
+            _ => panic!("This error should never occur"),
         }
     }
     /**
@@ -395,15 +396,15 @@ impl Bytes {
     }
     /**
      * Creates a `Vec` of size `block`, and creates a Bytes for each `block`
-     * 
+     *
      * E.g.
-     * 
+     *
      * [1F 22 33 44].collate(2) -> [[1F 33], [22 44]]
      */
-    pub fn collate(&self, block:usize) -> Vec<Bytes> {
+    pub fn collate(&self, block: usize) -> Vec<Bytes> {
         let mut ret = Vec::new();
         for _ in 0..block {
-            ret.push(Bytes {bytes:Vec::new()});
+            ret.push(Bytes { bytes: Vec::new() });
         }
         for b in self.bytes.iter().enumerate() {
             ret[b.0 % block].bytes.push(*b.1);
@@ -413,28 +414,28 @@ impl Bytes {
     /**
      * Undoes collate method
      */
-    pub fn decollate(parts:Vec<Bytes>) -> Bytes {
+    pub fn decollate(parts: Vec<Bytes>) -> Bytes {
         let mut ret = Vec::new();
         for i in 0..parts.first().unwrap().len() {
             for p in parts.iter() {
                 match p.bytes.get(i) {
                     Some(v) => ret.push(*v),
-                    None => ()
+                    None => (),
                 }
             }
         }
 
-        Bytes {bytes:ret}
+        Bytes { bytes: ret }
     }
     /**
      * Splits raw data buffer into `Bytes` of size
      * block
      */
-    pub fn split(&self, len:usize) -> Vec<Bytes> {
+    pub fn split(&self, len: usize) -> Vec<Bytes> {
         let mut ret: Vec<Bytes> = Vec::new();
-        for i in 0..self.bytes.len()/len {
-            let mut cur = Bytes {bytes:Vec::new()};
-            for j in i*len..(i+1)*len {
+        for i in 0..self.bytes.len() / len {
+            let mut cur = Bytes { bytes: Vec::new() };
+            for j in i * len..(i + 1) * len {
                 cur.bytes.push(self.bytes[j]);
             }
             ret.push(cur);
@@ -445,9 +446,9 @@ impl Bytes {
      * Pads data to a multiple of `padding`, using
      * PKCS#7
      */
-    pub fn pad_pkcs7(&self, padding:usize) -> Bytes {
+    pub fn pad_pkcs7(&self, padding: usize) -> Bytes {
         let mut ret = self.clone();
-        let num = padding - self.len()%padding;
+        let num = padding - self.len() % padding;
         for _ in 0..num {
             ret.bytes.push(num as u8);
         }
@@ -457,22 +458,22 @@ impl Bytes {
      * Trims PKCS#7 padding from bytes
      */
     pub fn trim_pkcs7(&self) -> Bytes {
-        let pad_num = self.bytes[self.bytes.len()-1] as usize;
+        let pad_num = self.bytes[self.bytes.len() - 1] as usize;
         // println!("{}", pad_num);
         if pad_num <= BLOCK_SIZE {
-            for b in self.bytes.len()-pad_num..self.bytes.len() {
+            for b in self.bytes.len() - pad_num..self.bytes.len() {
                 if self.bytes[b] != pad_num as u8 {
                     return self.clone();
                 }
             }
-            return self.clone().truncate(self.bytes.len()-pad_num);
+            return self.clone().truncate(self.bytes.len() - pad_num);
         }
         self.clone()
     }
     /**
      * Truncates data to len bytes, discarding data after
      */
-    pub fn truncate(&self, len:usize) -> Bytes {
+    pub fn truncate(&self, len: usize) -> Bytes {
         let mut ret = self.clone();
         while ret.bytes.len() > len {
             ret.bytes.pop();
@@ -482,7 +483,7 @@ impl Bytes {
     /**
      * Discard frist len bytes
      */
-    pub fn truncate_start(&self, len:usize) -> Bytes {
+    pub fn truncate_start(&self, len: usize) -> Bytes {
         let mut ret = self.clone();
         for _ in 0..len {
             ret.bytes.remove(0);
@@ -492,56 +493,56 @@ impl Bytes {
     /**
      * replace bytes from `index` with `part`
      */
-    pub fn replace(&self, part : &[u8], index : usize) -> Bytes {
-        if part.len()+index > self.bytes.len() {
+    pub fn replace(&self, part: &[u8], index: usize) -> Bytes {
+        if part.len() + index > self.bytes.len() {
             panic!("Part is to long to fit");
         }
         let mut ret = self.bytes.clone();
         for i in 0..part.len() {
-            ret[i+index] = part[i];
+            ret[i + index] = part[i];
         }
-        Bytes {bytes:ret}
+        Bytes { bytes: ret }
     }
     /**
      * replace bytes from `block * open_ssl::BLOCK_SIZE` with `part`
      */
-    pub fn replace_block(&self, part:&[u8], block : usize) -> Bytes {
-        if part.len()+block*16 > self.bytes.len() {
+    pub fn replace_block(&self, part: &[u8], block: usize) -> Bytes {
+        if part.len() + block * 16 > self.bytes.len() {
             panic!("Part is to long to fit");
         }
         let mut ret = self.bytes.clone();
         for i in 0..part.len() {
-            ret[i+block*16] = part[i];
+            ret[i + block * 16] = part[i];
         }
-        Bytes {bytes:ret}
+        Bytes { bytes: ret }
     }
     /**
      * Similar to `self[i]`, except the return type is `char`
      */
-    pub fn get(&self, i:usize) -> char {
+    pub fn get(&self, i: usize) -> char {
         return self.bytes[i] as char;
     }
     /**
      * XORs each byte of the buffer with `other`
      */
-    pub fn xor_byte(&self, other:u8) -> Bytes {
+    pub fn xor_byte(&self, other: u8) -> Bytes {
         let mut ret = Vec::new();
         for b in self.bytes.iter() {
             ret.push(b ^ other);
         }
-        Bytes {bytes:ret}
+        Bytes { bytes: ret }
     }
     /**
      * Increments data from the right
-     * 
+     *
      * returns true if data rolls over from the max value
      */
     pub fn inc(&mut self) -> bool {
         for b in self.bytes.iter_mut().rev() {
-            if *b == 255  {
+            if *b == 255 {
                 *b = 0;
-            }else {
-                *b+= 1;
+            } else {
+                *b += 1;
                 return false;
             }
         }
@@ -568,14 +569,14 @@ impl Bytes {
      * Creates a new buffer with only values that don't match
      * `val`
      */
-    pub fn remove(&self, val : u8) -> Bytes {
+    pub fn remove(&self, val: u8) -> Bytes {
         let mut ret = Vec::new();
         for b in self.bytes.iter() {
             if *b != val {
                 ret.push(*b);
             }
         }
-        Bytes {bytes: ret}
+        Bytes { bytes: ret }
     }
 }
 
@@ -588,11 +589,10 @@ impl ops::BitXor for Bytes {
         for b in self.bytes.iter().enumerate() {
             ret.push(*b.1 ^ *other.bytes.get(b.0 % other.bytes.len()).unwrap());
         }
-        Bytes {bytes:ret}
+        Bytes { bytes: ret }
     }
 }
 impl ops::BitXorAssign for Bytes {
-
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor_assign(&mut self, other: Self) {
         for b in self.bytes.iter_mut().enumerate() {
@@ -603,17 +603,17 @@ impl ops::BitXorAssign for Bytes {
 impl ops::Add<Self> for Bytes {
     type Output = Self;
     fn add(self, other: Self) -> Self {
-        let mut ret  = self.bytes.clone();
+        let mut ret = self.bytes.clone();
         ret.append(&mut other.bytes.clone());
-        Self {bytes: ret}
+        Self { bytes: ret }
     }
 }
 impl ops::Add<Bytes> for u8 {
     type Output = Bytes;
     fn add(self, other: Bytes) -> Bytes {
-        let mut ret  = other.bytes.clone();
+        let mut ret = other.bytes.clone();
         ret.insert(0, self);
-        Bytes {bytes: ret}
+        Bytes { bytes: ret }
     }
 }
 impl ops::AddAssign<Self> for Bytes {
@@ -624,9 +624,9 @@ impl ops::AddAssign<Self> for Bytes {
 impl ops::Add<u8> for Bytes {
     type Output = Self;
     fn add(self, other: u8) -> Self {
-        let mut ret  = self.bytes.clone();
+        let mut ret = self.bytes.clone();
         ret.push(other);
-        Self {bytes: ret}
+        Self { bytes: ret }
     }
 }
 impl ops::AddAssign<u8> for Bytes {
@@ -644,7 +644,7 @@ impl ops::Mul<usize> for Bytes {
         for _ in 1..num {
             ret.append(&mut self.bytes.clone());
         }
-        Self {bytes: ret}
+        Self { bytes: ret }
     }
 }
 impl ops::MulAssign<usize> for Bytes {
@@ -660,60 +660,60 @@ impl ops::MulAssign<usize> for Bytes {
 impl ops::Index<usize> for Bytes {
     type Output = u8;
 
-    fn index(&self, i : usize) -> &Self::Output {
+    fn index(&self, i: usize) -> &Self::Output {
         &self.bytes[i]
     }
 }
 impl ops::IndexMut<usize> for Bytes {
-    fn index_mut(&mut self, i : usize) -> &mut Self::Output {
+    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
         &mut self.bytes[i]
     }
 }
 impl ops::Index<Range<usize>> for Bytes {
     type Output = [u8];
 
-    fn index(&self, i : Range<usize>) -> &Self::Output {
+    fn index(&self, i: Range<usize>) -> &Self::Output {
         &self.bytes[i]
     }
 }
 impl ops::IndexMut<Range<usize>> for Bytes {
-    fn index_mut(&mut self, i : Range<usize>) -> &mut Self::Output {
+    fn index_mut(&mut self, i: Range<usize>) -> &mut Self::Output {
         &mut self.bytes[i]
     }
 }
 impl ops::Index<RangeFrom<usize>> for Bytes {
     type Output = [u8];
 
-    fn index(&self, i : RangeFrom<usize>) -> &Self::Output {
+    fn index(&self, i: RangeFrom<usize>) -> &Self::Output {
         &self.bytes[i]
     }
 }
 impl ops::IndexMut<RangeFrom<usize>> for Bytes {
-    fn index_mut(&mut self, i : RangeFrom<usize>) -> &mut Self::Output {
+    fn index_mut(&mut self, i: RangeFrom<usize>) -> &mut Self::Output {
         &mut self.bytes[i]
     }
 }
 impl ops::Index<RangeTo<usize>> for Bytes {
     type Output = [u8];
 
-    fn index(&self, i : RangeTo<usize>) -> &Self::Output {
+    fn index(&self, i: RangeTo<usize>) -> &Self::Output {
         &self.bytes[i]
     }
 }
 impl ops::IndexMut<RangeTo<usize>> for Bytes {
-    fn index_mut(&mut self, i : RangeTo<usize>) -> &mut Self::Output {
+    fn index_mut(&mut self, i: RangeTo<usize>) -> &mut Self::Output {
         &mut self.bytes[i]
     }
 }
 impl ops::Index<RangeFull> for Bytes {
     type Output = [u8];
 
-    fn index(&self, _ : RangeFull) -> &Self::Output {
+    fn index(&self, _: RangeFull) -> &Self::Output {
         &self.bytes
     }
 }
 impl ops::IndexMut<RangeFull> for Bytes {
-    fn index_mut(&mut self, _ : RangeFull) -> &mut Self::Output {
+    fn index_mut(&mut self, _: RangeFull) -> &mut Self::Output {
         &mut self.bytes
     }
 }
@@ -727,7 +727,7 @@ impl PartialEq for Bytes {
                 }
             }
             true
-        }else {
+        } else {
             false
         }
     }
@@ -754,7 +754,7 @@ impl std::cmp::Ord for Bytes {
             for bytes in self.bytes.iter().zip(other.bytes.iter()) {
                 if bytes.0 > bytes.1 {
                     return std::cmp::Ordering::Greater;
-                }else if bytes.0 < bytes.1 {
+                } else if bytes.0 < bytes.1 {
                     return std::cmp::Ordering::Less;
                 }
             }
@@ -769,15 +769,15 @@ impl fmt::Display for Bytes {
             let mut i = 0;
             let mut s = String::new();
             for b in self.bytes.iter() {
-                s+= &(*b as char).to_string();
-                i+= 1;
+                s += &(*b as char).to_string();
+                i += 1;
                 if i == width {
-                    s+= "\n";
+                    s += "\n";
                     i = 0;
                 }
             }
             write!(f, "{}", s)
-        }else {
+        } else {
             write!(f, "{}", self.to_utf8())
         }
     }
@@ -789,26 +789,26 @@ impl fmt::Debug for Bytes {
             let mut s = String::default();
             for b in self.bytes.iter() {
                 if (*b as char).is_ascii_graphic() {
-                    s+= " ";
-                    s+= &(*b as char).to_string();
-                }else {
-                    s+= &Bytes::byte_to_hex(*b);
+                    s += " ";
+                    s += &(*b as char).to_string();
+                } else {
+                    s += &Bytes::byte_to_hex(*b);
                 }
-                i+= 1;
+                i += 1;
                 if i == width {
-                    s+= "\n";
+                    s += "\n";
                     i = 0;
                 }
             }
             write!(f, "{}", s)
-        }else {
+        } else {
             let mut s = String::default();
             for b in self.bytes.iter() {
                 if (*b as char).is_ascii_graphic() {
-                    s+= " ";
-                    s+= &(*b as char).to_string();
-                }else {
-                    s+= &Bytes::byte_to_hex(*b);
+                    s += " ";
+                    s += &(*b as char).to_string();
+                } else {
+                    s += &Bytes::byte_to_hex(*b);
                 }
             }
             write!(f, "{}", s)
@@ -821,15 +821,15 @@ impl fmt::UpperHex for Bytes {
             let mut i = 0;
             let mut s = String::default();
             for b in self.bytes.iter() {
-                s+= &Bytes::byte_to_hex(*b);
-                i+= 1;
+                s += &Bytes::byte_to_hex(*b);
+                i += 1;
                 if i == width {
-                    s+= "\n";
+                    s += "\n";
                     i = 0;
                 }
             }
             write!(f, "{}", s)
-        }else {
+        } else {
             write!(f, "{}", self.to_hex())
         }
     }
