@@ -27,12 +27,11 @@ use std::ops::RangeTo;
  * Display and Debug => Defualts to printing as utf-8, UpperHex is also
  * implemented
  */
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct Bytes {
     bytes: Vec<u8>,
 }
 
-#[allow(dead_code)]
 impl Bytes {
     /**
      * Reads Hex values from `s`
@@ -578,6 +577,24 @@ impl Bytes {
         }
         Bytes { bytes: ret }
     }
+
+    pub fn pivot(v: Vec<Bytes>) -> Vec<Bytes> {
+        let mut len = usize::max_value();
+        for t in v.iter() {
+            if t.len() < len {
+                len = t.len();
+            }
+        }
+        let mut ret = Vec::with_capacity(len);
+        for i in 0..len {
+            let mut b = Self::zero(v.len());
+            for j in 0..v.len() {
+                b[j] = v[j][i];
+            }
+            ret.push(b);
+        }
+        ret
+    }
 }
 
 impl ops::BitXor for Bytes {
@@ -592,6 +609,7 @@ impl ops::BitXor for Bytes {
         Bytes { bytes: ret }
     }
 }
+
 impl ops::BitXorAssign for Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor_assign(&mut self, other: Self) {
