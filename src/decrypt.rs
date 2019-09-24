@@ -5,27 +5,27 @@ use crate::oracle::{CBCPaddingOracle, Oracle};
 
 /**
  * Uses the provided Iterator to generate and test every possible key, and returns the value after xor (^)
- * that maximizes the score function provided
+ * that minimizes the score function provided
 */
 pub fn decrypt_xor(
     data: Bytes,
     key: impl Iterator<Item = Bytes>,
     score: fn(&str) -> isize,
-) -> (String, Bytes, isize) {
-    let mut max = isize::max_value();
+) -> (Bytes, Bytes, isize) {
+    let mut min = isize::max_value();
     let mut k: Bytes = Bytes::zero(1);
-    let mut best = String::default();
+    let mut best = Bytes::zero(0);
     for b in key {
-        let tmp = (data.clone() ^ b.clone()).to_utf8();
-        let tmp_s = score(&tmp[..]);
-        if tmp_s < max {
-            max = tmp_s;
+        let tmp = data.clone() ^ b.clone();
+        let tmp_s = score(&tmp.to_utf8()[..]);
+        if tmp_s < min {
+            min = tmp_s;
             best = tmp;
             k = b;
-        } else if tmp_s == max {
+        } else if tmp_s == min {
         }
     }
-    (best, k, max)
+    (best, k, min)
 }
 
 /**
