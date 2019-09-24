@@ -16,8 +16,46 @@ use oracle::Oracle;
  */
 
 fn main() {
-    challenge_3_18();
+    challenge_3_20();
     println!("---------- Ok");
+}
+
+#[allow(dead_code)]
+fn challenge_3_20() {
+    let columns_enc = data::Bytes::pivot(oracle::gen_ctr_tests_3_20());
+    let mut columns_plain = Vec::with_capacity(columns_enc.len());
+
+    for column in columns_enc {
+        let (plain, _key, _score) = decrypt::decrypt_xor(column, keys::KeyGen::new(1), lang::count_invalid_letters);
+        columns_plain.push(plain);
+    }
+    let rows_plain = data::Bytes::pivot(columns_plain);
+    for row in rows_plain {
+        println!("{}", row);
+    }
+}
+
+#[allow(dead_code)]
+fn challenge_3_19() {
+    /*
+     * Skipped this challenge through no fault of my own
+     * When presented with this challenge, I choose to use
+     * the method outlined in 3.20, before reading 3.20
+     * 
+     * It turns out that 3.20's method doesn't work for 3.19,
+     * beacuse there aren't enough samples in 3.19 (only 40)
+    */
+    let columns_enc = data::Bytes::pivot(oracle::gen_ctr_tests_3_19());
+    let mut columns_plain = Vec::with_capacity(columns_enc.len());
+
+    for column in columns_enc {
+        let (plain, _key, _score) = decrypt::decrypt_xor(column, keys::KeyGen::new(1), lang::count_invalid_letters);
+        columns_plain.push(plain);
+    }
+    let rows_plain = data::Bytes::pivot(columns_plain);
+    for row in rows_plain {
+        println!("{}", row);
+    }
 }
 
 #[allow(dead_code)]
@@ -271,7 +309,7 @@ fn challenge_1_5() {
 
 #[allow(dead_code)]
 fn challenge_1_4() {
-    let mut best = (String::default(), data::Bytes::zero(0), 0);
+    let mut best = (data::Bytes::default(), data::Bytes::default(), 0);
 
     let raw_iter = file::File::read_hex_file("data_1_4");
 
