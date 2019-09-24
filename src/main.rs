@@ -5,6 +5,7 @@ mod keys;
 mod lang;
 mod open_ssl;
 mod oracle;
+mod random;
 
 use oracle::Oracle;
 
@@ -16,8 +17,16 @@ use oracle::Oracle;
  */
 
 fn main() {
-    challenge_3_20();
+    challenge_3_21();
     println!("---------- Ok");
+}
+
+#[allow(dead_code)]
+fn challenge_3_21() {
+    let mut rng = random::MersenneGen::new(0);
+    for _ in 0..100 {
+        println!("{}", rng.extract_number());
+    }
 }
 
 #[allow(dead_code)]
