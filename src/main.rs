@@ -10,7 +10,7 @@ mod oracle;
 use oracle::Oracle;
 
 /**
- * Note: this main only runs challenge 2.17
+ * Note: this main only runs one challenge
  * In order to run other challenges, line
  * 20 should be replaced with the revelant
  * function
@@ -23,7 +23,9 @@ fn main() {
 
 #[allow(dead_code)]
 fn challenge_3_18() {
-
+    let data = data::Bytes::read_64("L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==");
+    let mut stream = open_ssl::CTRstream::new(0, data::Bytes::read_utf8("YELLOW SUBMARINE"));
+    println!("Decrypted: {}", stream.encrypt(data));
 }
 
 #[allow(dead_code)]
