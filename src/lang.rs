@@ -33,7 +33,7 @@ pub fn count_invalid_letters(s: &str) -> isize {
 }
 
 #[allow(dead_code)]
-const std_freq : [f64;26] = [
+const STD_FREQ : [f64;26] = [
     08.167, // a
     01.492, // b
     02.782, // c
