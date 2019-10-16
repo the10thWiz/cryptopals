@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 mod data;
 mod decrypt;
 mod file;
@@ -22,7 +23,7 @@ fn main() {
     println!("---------- Ok");
 }
 
-#[allow(dead_code)]
+
 fn challenge_3_22() {
     // Rust doesn't have an easy way to get the seconds since the UNIX_EPOCH, so I just used a random value
     // from the rand module
@@ -53,7 +54,6 @@ fn challenge_3_22() {
     // y = y ^ (((y & random::B) << random::S) & random::B);
 }
 
-#[allow(dead_code)]
 fn challenge_3_21() {
     let mut rng = random::MersenneGen::new(0);
     for _ in 0..100 {
@@ -61,7 +61,6 @@ fn challenge_3_21() {
     }
 }
 
-#[allow(dead_code)]
 fn challenge_3_20() {
     let columns_enc = data::Bytes::pivot(oracle::gen_ctr_tests_3_20());
     let mut columns_plain = Vec::with_capacity(columns_enc.len());
@@ -77,7 +76,6 @@ fn challenge_3_20() {
     }
 }
 
-#[allow(dead_code)]
 fn challenge_3_19() {
     /*
      * Skipped this challenge through no fault of my own
@@ -101,7 +99,6 @@ fn challenge_3_19() {
     }
 }
 
-#[allow(dead_code)]
 fn challenge_3_18() {
     let data = data::Bytes::read_64(
         "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==",
@@ -110,7 +107,6 @@ fn challenge_3_18() {
     println!("Decrypted: {}", stream.encrypt(data));
 }
 
-#[allow(dead_code)]
 fn challenge_3_17() {
     let oracle = oracle::CBCPaddingOracle::new();
 
@@ -126,7 +122,6 @@ fn challenge_3_17() {
     println!("{}", known.trim_pkcs7());
 }
 
-#[allow(dead_code)]
 fn challenge_2_16() {
     let oracle = oracle::ProfileCBCOracle::new();
 
@@ -153,7 +148,6 @@ fn challenge_2_16() {
     assert_eq!(oracle.get_role(swapped), oracle::Role::ADMIN);
 }
 
-#[allow(dead_code)]
 fn challenge_2_15() {
     // I'm supposed to write a function to trim PKCS#7 padding,
     // but I already wrote it. It's `data::Bytes::trim_pkcs7()`
@@ -161,7 +155,6 @@ fn challenge_2_15() {
     // there wasn't anything to remove
 }
 
-#[allow(dead_code)]
 fn challenge_2_14() {
     let oracle = oracle::RandomOracle::new();
 
@@ -195,7 +188,6 @@ fn challenge_2_14() {
     println!("{}", known);
 }
 
-#[allow(dead_code)]
 fn challenge_2_13() {
     let oracle = oracle::ProfileOracle::new();
 
@@ -218,7 +210,6 @@ fn challenge_2_13() {
     assert_eq!(oracle.get_role(admin_profile), oracle::Role::ADMIN);
 }
 
-#[allow(dead_code)]
 fn challenge_2_12() {
     let oracle = oracle::OracleSimple::new();
 
@@ -239,7 +230,6 @@ fn challenge_2_12() {
     println!("{}", known);
 }
 
-#[allow(dead_code)]
 fn challenge_2_11() {
     for i in 0..1000 {
         println!("Trial {}", i);
@@ -256,7 +246,6 @@ fn challenge_2_11() {
     }
 }
 
-#[allow(dead_code)]
 fn challenge_2_10() {
     let data = file::File::read_64_file("data_2_10").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
@@ -265,7 +254,6 @@ fn challenge_2_10() {
     println!("{}", open_ssl::decrypt_cbc(data, key, iv));
 }
 
-#[allow(dead_code)]
 fn challenge_2_9() {
     let data = data::Bytes::read_utf8("YELLOW SUBMARINE");
     assert_eq!(
@@ -274,7 +262,6 @@ fn challenge_2_9() {
     );
 }
 
-#[allow(dead_code)]
 fn challenge_1_8() {
     let ciphertexts = file::File::read_hex_file("data_1_8");
     let mut detected = data::Bytes::zero(0);
@@ -290,14 +277,12 @@ fn challenge_1_8() {
     println!("Repeats: {}", max);
 }
 
-#[allow(dead_code)]
 fn challenge_1_7() {
     let data = file::File::read_64_file("data_1_7").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
     println!("{}", open_ssl::decrypt_ecb(data, key));
 }
 
-#[allow(dead_code)]
 fn challenge_1_6() {
     // Hamming_dist (Step 2)
     assert_eq!(lang::hamming_dist("this is a test", "this is a test"), 0);
@@ -338,7 +323,7 @@ fn challenge_1_6() {
     let text = raw ^ data::Bytes::read_utf8(&key);
     println!("Text: {}", text);
 }
-#[allow(dead_code)]
+
 fn challenge_1_5() {
     let text = data::Bytes::read_utf8(
         "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal",
@@ -350,7 +335,6 @@ fn challenge_1_5() {
     assert_eq!((xor ^ key).to_utf8(), text.to_utf8());
 }
 
-#[allow(dead_code)]
 fn challenge_1_4() {
     let mut best = (data::Bytes::default(), data::Bytes::default(), 0);
 
@@ -364,7 +348,7 @@ fn challenge_1_4() {
     }
     println!("\n{}", best.0);
 }
-#[allow(dead_code)]
+
 fn challenge_1_3() {
     let raw1 = data::Bytes::read_hex(
         "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736",
@@ -375,14 +359,14 @@ fn challenge_1_3() {
         decrypt::decrypt_xor(raw1, keys::KeyGen::new(1), lang::score_string).0
     );
 }
-#[allow(dead_code)]
+
 fn challenge_1_2() {
     let raw1 = data::Bytes::read_hex("1c0111001f010100061a024b53535009181c");
     let raw2 = data::Bytes::read_hex("686974207468652062756c6c277320657965");
 
     assert_eq!(raw1 ^ raw2, "746865206b696420646f6e277420706c6179");
 }
-#[allow(dead_code)]
+
 fn challenge_1_1() {
     let raw1 = data::Bytes::read_hex("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d");
     assert_eq!(
