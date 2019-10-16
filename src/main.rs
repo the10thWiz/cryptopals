@@ -5,6 +5,7 @@ mod keys;
 mod lang;
 mod open_ssl;
 mod oracle;
+mod print;
 mod random;
 
 use oracle::Oracle;
@@ -17,8 +18,39 @@ use oracle::Oracle;
  */
 
 fn main() {
-    challenge_3_21();
+    challenge_3_22();
     println!("---------- Ok");
+}
+
+#[allow(dead_code)]
+fn challenge_3_22() {
+    // Rust doesn't have an easy way to get the seconds since the UNIX_EPOCH, so I just used a random value
+    // from the rand module
+    let mut rng = random::MersenneGen::new(rand::random());
+    let test = rng.extract_number();
+
+    let mut y = test;
+    y = y ^ (y >> random::L);
+    y = y ^ ((y << random::T) & random::C);
+    // println!("{}", print::mask_bin(y, random::B & (random::B << random::S)));
+    y = y ^ ((y << random::S) & random::B);
+    // y = y ^ ((y >> random::U) & random::D);
+    println!(
+        "{}",
+        print::mask_bin(rng.get_internal(0), random::B & (random::B << random::S))
+    );
+    println!("{}", print::diff_bin(y, rng.get_internal(0)));
+    println!();
+    println!(
+        "{}",
+        print::mask_bin(y, random::B & (random::B << random::S))
+    );
+    println!(
+        "{}",
+        print::mask_bin(y >> random::S, random::B & (random::B << random::S))
+    );
+
+    // y = y ^ (((y & random::B) << random::S) & random::B);
 }
 
 #[allow(dead_code)]
@@ -35,7 +67,8 @@ fn challenge_3_20() {
     let mut columns_plain = Vec::with_capacity(columns_enc.len());
 
     for column in columns_enc {
-        let (plain, _key, _score) = decrypt::decrypt_xor(column, keys::KeyGen::new(1), lang::count_invalid_letters);
+        let (plain, _key, _score) =
+            decrypt::decrypt_xor(column, keys::KeyGen::new(1), lang::count_invalid_letters);
         columns_plain.push(plain);
     }
     let rows_plain = data::Bytes::pivot(columns_plain);
@@ -50,15 +83,16 @@ fn challenge_3_19() {
      * Skipped this challenge through no fault of my own
      * When presented with this challenge, I choose to use
      * the method outlined in 3.20, before reading 3.20
-     * 
+     *
      * It turns out that 3.20's method doesn't work for 3.19,
      * beacuse there aren't enough samples in 3.19 (only 40)
-    */
+     */
     let columns_enc = data::Bytes::pivot(oracle::gen_ctr_tests_3_19());
     let mut columns_plain = Vec::with_capacity(columns_enc.len());
 
     for column in columns_enc {
-        let (plain, _key, _score) = decrypt::decrypt_xor(column, keys::KeyGen::new(1), lang::count_invalid_letters);
+        let (plain, _key, _score) =
+            decrypt::decrypt_xor(column, keys::KeyGen::new(1), lang::count_invalid_letters);
         columns_plain.push(plain);
     }
     let rows_plain = data::Bytes::pivot(columns_plain);
