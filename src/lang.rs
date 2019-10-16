@@ -18,22 +18,33 @@ pub fn score_string(s: &str) -> isize {
 
 /**
  * Returns the number of "invalid" letters in a string - the valid
- * 
+ *
  * Valid = Ascii, alpha-numeric, or selected puncuation
  */
 pub fn count_invalid_letters(s: &str) -> isize {
     let mut score = 0;
     for c in s.chars() {
         score += match c {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | ' ' | '.' | ',' | '?' | '!' | '-' | '\'' | '"' | '/' => -1,
-            _ => 1
+            'a'..='z'
+            | 'A'..='Z'
+            | '0'..='9'
+            | ' '
+            | '.'
+            | ','
+            | '?'
+            | '!'
+            | '-'
+            | '\''
+            | '"'
+            | '/' => -1,
+            _ => 1,
         }
     }
     score
 }
 
 #[allow(dead_code)]
-const STD_FREQ : [f64;26] = [
+const STD_FREQ: [f64; 26] = [
     08.167, // a
     01.492, // b
     02.782, // c
@@ -67,9 +78,9 @@ pub fn histogram(s: &str) -> isize {
     let mut count = [0usize; 26];
     for c in s.chars() {
         match c {
-            'a'..='z' => count[c as usize - 'a' as usize]+= 1,
-            'A'..='Z' => count[c as usize - 'A' as usize]+= 1,
-            _ => ()
+            'a'..='z' => count[c as usize - 'a' as usize] += 1,
+            'A'..='Z' => count[c as usize - 'A' as usize] += 1,
+            _ => (),
         }
     }
 
