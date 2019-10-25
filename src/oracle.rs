@@ -24,16 +24,16 @@ pub trait Oracle {
  */
 pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
     let mut rng = thread_rng();
-
+    
     let plain = (Bytes::rand(rng.gen_range(5, 10)) + input + Bytes::rand(rng.gen_range(5, 10)))
         .pad_pkcs7(BLOCK_SIZE);
     if rng.gen() {
-        return (
+        (
             aes_cbc_en(plain, Bytes::rand(BLOCK_SIZE), Bytes::rand(BLOCK_SIZE)),
             true,
-        );
+        )
     } else {
-        return (aes_ecb_en(plain, Bytes::rand(BLOCK_SIZE)), false);
+        (aes_ecb_en(plain, Bytes::rand(BLOCK_SIZE)), false)
     }
 }
 
