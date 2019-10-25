@@ -1,5 +1,5 @@
 use super::Bytes;
-use std::fmt::{Debug, Display, Formatter, Result, UpperHex, Alignment};
+use std::fmt::{Debug, Display, Formatter, Result, UpperHex, LowerHex, Alignment};
 
 impl Bytes {
     fn fmt_tmp(s: String, mult: usize, f: &mut Formatter) -> Result {
@@ -77,6 +77,11 @@ impl UpperHex for Bytes {
         Self::fmt_tmp(self.to_hex(), 2, f)
     }
 }
+impl LowerHex for Bytes {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        Self::fmt_tmp(self.to_lower_hex(), 2, f)
+    }
+}
 
 pub struct SliceFmt<'a>(&'a [Bytes]);
 impl<'a> Display for SliceFmt<'a> {
@@ -91,6 +96,14 @@ impl<'a> UpperHex for SliceFmt<'a> {
     fn fmt(&self, f: &mut Formatter) -> Result {
         for v in self.0 {
             UpperHex::fmt(v, f)?
+        }
+        Ok(())
+    }
+}
+impl<'a> LowerHex for SliceFmt<'a> {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        for v in self.0 {
+            LowerHex::fmt(v, f)?
         }
         Ok(())
     }
@@ -120,6 +133,16 @@ impl<'a> UpperHex for List<'a> {
         write!(f, "[")?;
         for v in self.0.as_ref() {
             UpperHex::fmt(v, f)?;
+            write!(f, ", ")?;
+        }
+        write!(f, "]")
+    }
+}
+impl<'a> LowerHex for List<'a> {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "[")?;
+        for v in self.0.as_ref() {
+            LowerHex::fmt(v, f)?;
             write!(f, ", ")?;
         }
         write!(f, "]")
