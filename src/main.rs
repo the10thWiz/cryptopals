@@ -6,10 +6,10 @@ mod file;
 mod keys;
 mod lang;
 mod oracle;
-mod print;
 mod random;
 
 use oracle::Oracle;
+use diff_fmt::*;
 
 /**
  * Note: this main only runs one challenge
@@ -42,8 +42,8 @@ fn challenge_3_22() {
     println!("{:032b}", random::B & (random::B << random::S));
     println!("{:032b}", random::B ^ (random::B & (random::B << random::S)));
     println!();
-    println!("{}", print::diff_bin(rng.get_internal(0), y));
-    println!("{}", print::diff_bin(y, rng.get_internal(0)));
+    println!("{:032b}", diff(&rng.get_internal(0), &y));
+    println!("{:032b}", diff(&y, &rng.get_internal(0)));
     // println!(
     //     "{}",
     //     print::mask_bin(rng.get_internal(0), random::B & (random::B << random::S))
