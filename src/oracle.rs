@@ -29,11 +29,11 @@ pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
         .pad_pkcs7(BLOCK_SIZE);
     if rng.gen() {
         return (
-            encrypt_cbc(plain, Bytes::rand(BLOCK_SIZE), Bytes::rand(BLOCK_SIZE)),
+            aes_cbc_en(plain, Bytes::rand(BLOCK_SIZE), Bytes::rand(BLOCK_SIZE)),
             true,
         );
     } else {
-        return (encrypt_ecb(plain, Bytes::rand(BLOCK_SIZE)), false);
+        return (aes_ecb_en(plain, Bytes::rand(BLOCK_SIZE)), false);
     }
 }
 
@@ -52,12 +52,12 @@ impl OracleSimple {
 }
 impl Oracle for OracleSimple {
     fn encrypt(&self, input: Bytes) -> Bytes {
-        encrypt_ecb((input+Bytes::read_64("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
+        aes_ecb_en((input+Bytes::read_64("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
     gaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IH\
     N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK")).pad_pkcs7(BLOCK_SIZE), self.key.clone())
     }
     fn decrypt(&self, input: Bytes) {
-        println!("{:16?}", decrypt_ecb(input, self.key.clone()));
+        println!("{:16?}", aes_ecb_de(input, self.key.clone()));
     }
 }
 
@@ -81,7 +81,7 @@ impl ProfileOracle {
         }
     }
     pub fn encode_profile(&self, email: Bytes) -> Bytes {
-        encrypt_ecb(
+        aes_ecb_en(
             self.create_profile(email).pad_pkcs7(BLOCK_SIZE),
             self.key.clone(),
         )
@@ -92,7 +92,7 @@ impl ProfileOracle {
             + Bytes::read_utf8("&uid=10&role=user")
     }
     pub fn get_role(&self, profile: Bytes) -> Role {
-        for p in decrypt_ecb(profile, self.key.clone())
+        for p in aes_ecb_de(profile, self.key.clone())
             .trim_pkcs7()
             .to_utf8()
             .split("&")
@@ -109,7 +109,7 @@ impl ProfileOracle {
         Role::USER
     }
     pub fn print_raw(&self, profile: Bytes) {
-        println!("{0:16?}{0:16X}", decrypt_ecb(profile, self.key.clone()));
+        println!("{0:16?}{0:16X}", aes_ecb_de(profile, self.key.clone()));
     }
 }
 
@@ -131,13 +131,13 @@ N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"), prefix: Bytes::rand(random::<u8>() as usiz
 }
 impl Oracle for RandomOracle {
     fn encrypt(&self, input: Bytes) -> Bytes {
-        encrypt_ecb(
+        aes_ecb_en(
             (self.prefix.clone() + input + self.target.clone()).pad_pkcs7(BLOCK_SIZE),
             self.key.clone(),
         )
     }
     fn decrypt(&self, input: Bytes) {
-        println!("{:16?}", decrypt_ecb(input, self.key.clone()));
+        println!("{:16?}", aes_ecb_de(input, self.key.clone()));
     }
 }
 
@@ -168,7 +168,7 @@ impl ProfileCBCOracle {
         }
     }
     pub fn encode_profile(&self, email: Bytes) -> Bytes {
-        encrypt_cbc(
+        aes_cbc_en(
             self.create_profile(email).pad_pkcs7(BLOCK_SIZE),
             self.key.clone(),
             self.iv.clone(),
@@ -180,7 +180,7 @@ impl ProfileCBCOracle {
             + Bytes::read_utf8(";comment2=%20like%20a%20pound%20of%20bacon")
     }
     pub fn get_role(&self, profile: Bytes) -> Role {
-        for p in decrypt_cbc(profile, self.key.clone(), self.iv.clone())
+        for p in aes_cbc_de(profile, self.key.clone(), self.iv.clone())
             .trim_pkcs7()
             .to_utf8()
             .split(";")
@@ -200,7 +200,7 @@ impl ProfileCBCOracle {
     pub fn print_raw(&self, profile: Bytes) {
         println!(
             "{0:16?}{0:16X}",
-            decrypt_cbc(profile, self.key.clone(), self.iv.clone())
+            aes_cbc_de(profile, self.key.clone(), self.iv.clone())
         );
     }
 }
@@ -240,16 +240,16 @@ impl CBCPaddingOracle {
     }
     pub fn encrypt(&self) -> (Bytes, Bytes) {
         let iv = Bytes::rand(16);
-        (iv.clone(), encrypt_cbc(get_rand(), self.key.clone(), iv))
+        (iv.clone(), aes_cbc_en(get_rand(), self.key.clone(), iv))
     }
     pub fn check_padding(&self, enc: (Bytes, Bytes)) -> bool {
-        let dec = decrypt_cbc(enc.1, self.key.clone(), enc.0);
+        let dec = aes_cbc_de(enc.1, self.key.clone(), enc.0);
         dec.trim_pkcs7().len() < dec.len()
     }
     pub fn print_raw(&self, enc: (Bytes, Bytes)) {
         println!(
             "{}",
-            decrypt_cbc(enc.1, self.key.clone(), enc.0).trim_pkcs7()
+            aes_cbc_de(enc.1, self.key.clone(), enc.0).trim_pkcs7()
         );
     }
 }
@@ -260,7 +260,7 @@ pub fn gen_ctr_tests_3_19() -> Vec<Bytes> {
     let key = Bytes::rand(16);
     for b in file {
         let mut ctr = CTRstream::new(0, key.clone());
-        ret.push(ctr.encrypt(b));
+        ret.push(ctr.crypt(b));
     }
     ret
 }
@@ -271,7 +271,7 @@ pub fn gen_ctr_tests_3_20() -> Vec<Bytes> {
     let key = Bytes::rand(16);
     for b in file {
         let mut ctr = CTRstream::new(0, key.clone());
-        ret.push(ctr.encrypt(b));
+        ret.push(ctr.crypt(b));
     }
     ret
 }
