@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 mod data;
+mod cipher;
 mod decrypt;
 mod file;
 mod keys;
@@ -20,7 +21,7 @@ use oracle::Oracle;
 
 fn main() {
     challenge_3_22();
-    println!("---------- Ok");
+    println!("---------- Ok {}", crate::cipher::BLOCK_SIZE);
 }
 
 
@@ -34,22 +35,34 @@ fn challenge_3_22() {
     y = y ^ (y >> random::L);
     y = y ^ ((y << random::T) & random::C);
     // println!("{}", print::mask_bin(y, random::B & (random::B << random::S)));
-    y = y ^ ((y << random::S) & random::B);
+    y = y ^ ((y << random::S) & (random::B ^ (random::B & (random::B << random::S))));
+    y = y ^ ((y << random::S) & (random::B & (random::B << random::S)));
     // y = y ^ ((y >> random::U) & random::D);
-    println!(
-        "{}",
-        print::mask_bin(rng.get_internal(0), random::B & (random::B << random::S))
-    );
-    println!("{}", print::diff_bin(y, rng.get_internal(0)));
+    println!("{:032b}", random::B);
+    println!("{:032b}", random::B << random::S);
+    println!("{:032b}", random::B & (random::B << random::S));
+    println!("{:032b}", random::B ^ (random::B & (random::B << random::S)));
     println!();
-    println!(
-        "{}",
-        print::mask_bin(y, random::B & (random::B << random::S))
-    );
-    println!(
-        "{}",
-        print::mask_bin(y >> random::S, random::B & (random::B << random::S))
-    );
+    println!("{}", print::diff_bin(rng.get_internal(0), y));
+    println!("{}", print::diff_bin(y, rng.get_internal(0)));
+    // println!(
+    //     "{}",
+    //     print::mask_bin(rng.get_internal(0), random::B & (random::B << random::S))
+    // );
+    // println!(
+    //     "{}",
+    //     print::mask_bin(rng.get_internal(0), random::B ^ (random::B & (random::B << random::S)))
+    // );
+    // println!("{}", print::diff_bin(y, rng.get_internal(0)));
+    // println!();
+    // println!(
+    //     "{}",
+    //     print::mask_bin(y, random::B & (random::B << random::S))
+    // );
+    // println!(
+    //     "{}",
+    //     print::mask_bin(y >> random::S, random::B & (random::B << random::S))
+    // );
 
     // y = y ^ (((y & random::B) << random::S) & random::B);
 }
@@ -103,8 +116,8 @@ fn challenge_3_18() {
     let data = data::Bytes::read_64(
         "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==",
     );
-    let mut stream = open_ssl::CTRstream::new(0, data::Bytes::read_utf8("YELLOW SUBMARINE"));
-    println!("Decrypted: {}", stream.encrypt(data));
+    let mut stream = cipher::CTRstream::new(0, data::Bytes::read_utf8("YELLOW SUBMARINE"));
+    println!("Decrypted: {}", stream.crypt(data));
 }
 
 fn challenge_3_17() {
@@ -251,7 +264,7 @@ fn challenge_2_10() {
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
     let iv =
         data::Bytes::read_utf8("\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00");
-    println!("{}", open_ssl::decrypt_cbc(data, key, iv));
+    println!("{}", cipher::aes_cbc_de(data, key, iv));
 }
 
 fn challenge_2_9() {
@@ -280,7 +293,7 @@ fn challenge_1_8() {
 fn challenge_1_7() {
     let data = file::File::read_64_file("data_1_7").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
-    println!("{}", open_ssl::decrypt_ecb(data, key));
+    println!("{}", cipher::aes_ecb_de(data, key));
 }
 
 fn challenge_1_6() {
