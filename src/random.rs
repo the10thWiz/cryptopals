@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 pub const W: usize = 32; // word size (in number of bits)
 pub const N: usize = 624; // degree of recurrence
 pub const M: usize = 397; // middle word, an offset used in the recurrence relation defining the series x, 1 ≤ m < n
