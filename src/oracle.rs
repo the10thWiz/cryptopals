@@ -1,6 +1,6 @@
 use crate::data::Bytes;
 use crate::file::File;
-use crate::open_ssl::*;
+use crate::cipher::*;
 use rand::prelude::*;
 
 /**

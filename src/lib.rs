@@ -7,6 +7,10 @@
  */
 pub mod data;
 /**
+ * Convience functions for calling open_ssl
+ */
+pub mod cipher;
+/**
  * Convience functions for breaking encryption
  */
 pub mod decrypt;
@@ -22,10 +26,6 @@ pub mod keys;
  * Convience functions for working with languages
  */
 pub mod lang;
-/**
- * Convience functions for calling open_ssl
- */
-pub mod open_ssl;
 /**
  * Oracles for challenges involving side-channel leaks
  */

@@ -5,7 +5,6 @@ mod decrypt;
 mod file;
 mod keys;
 mod lang;
-mod open_ssl;
 mod oracle;
 mod print;
 mod random;

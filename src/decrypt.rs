@@ -1,6 +1,6 @@
 use crate::data::Bytes;
 use crate::keys;
-use crate::open_ssl::BLOCK_SIZE;
+use crate::cipher::BLOCK_SIZE;
 use crate::oracle::{CBCPaddingOracle, Oracle};
 
 /**

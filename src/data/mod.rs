@@ -1,7 +1,7 @@
 mod ops;
 mod display;
 mod conversion;
-use crate::open_ssl::BLOCK_SIZE;
+use crate::cipher::BLOCK_SIZE;
 use rand::prelude::random;
 /*
     data.rs 1013 lines before I split it up into the 4 files that exist now. I expect
