@@ -1,7 +1,6 @@
 mod ops;
 mod display;
 mod conversion;
-
 use crate::open_ssl::BLOCK_SIZE;
 use rand::prelude::random;
 /*
@@ -37,6 +36,15 @@ pub struct Bytes {
 }
 
 impl Bytes {
+    pub fn new() -> Bytes {
+        Self {bytes: Vec::new()}
+    }
+    pub fn with_capacity(size: usize) -> Bytes {
+        Self {bytes: Vec::with_capacity(size)}
+    }
+    pub fn empty() -> Bytes {
+        Self {bytes: Vec::default()}
+    }
     /**
      * Reads raw u8 values from `v`
      */
