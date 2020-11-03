@@ -5,7 +5,7 @@ const ORDER: &str = "etaoinsrhldcumfpgwybvkxjqz ETAOINSRHLDCUMFPGWYBVKXJQZ.?!123
 /**
  * Makes a simple guess at whether the string provided is English, using etaoin order
  */
-pub fn score_string(s: &str) -> isize {
+pub fn score_string(s: &str) -> f64 {
     let mut score: isize = 0;
     for c in s.chars() {
         score += match ORDER.find(c) {
@@ -13,7 +13,7 @@ pub fn score_string(s: &str) -> isize {
             Some(i) => i as isize,
         }
     }
-    score
+    score as f64
 }
 
 /**
@@ -21,7 +21,7 @@ pub fn score_string(s: &str) -> isize {
  *
  * Valid = Ascii, alpha-numeric, or selected puncuation
  */
-pub fn count_invalid_letters(s: &str) -> isize {
+pub fn count_invalid_letters(s: &str) -> f64 {
     let mut score = 0;
     for c in s.chars() {
         score += match c {
@@ -40,7 +40,7 @@ pub fn count_invalid_letters(s: &str) -> isize {
             _ => 1,
         }
     }
-    score
+    score as f64
 }
 
 #[allow(dead_code)]
@@ -74,7 +74,7 @@ const STD_FREQ: [f64; 26] = [
 ];
 
 #[allow(dead_code)]
-pub fn histogram(s: &str) -> isize {
+pub fn histogram_score(s: &str) -> f64 {
     let mut count = [0usize; 26];
     for c in s.chars() {
         match c {
@@ -83,8 +83,54 @@ pub fn histogram(s: &str) -> isize {
             _ => (),
         }
     }
+    let mut diff = 0f64;
+    for (i, (&ac, ex)) in count.iter().zip(STD_FREQ.iter()).enumerate() {
+        let act = (ac as f64) / s.len() as f64;
+        let mult = match ORDER
+            .find(((i as u8 + 'a' as u8) as char).to_ascii_lowercase())
+            .unwrap()
+        {
+            0..=0 => 1,
+            _ => 0,
+        };
+        //println!(
+            //"{}: {:05.2}% vs {:05.2}%, {}",
+            //(i as u8 + 'a' as u8) as char,
+            //act * 100.0,
+            //ex,
+            //mult
+        //);
+        diff += (act * 1000.0 - ex * 10.0).abs().round() * mult as f64;
+    }
+    (diff * 1f64)
+}
 
-    0
+pub fn histogram(s: &str) -> String {
+    let mut count = [0usize; 26];
+    for c in s.chars() {
+        match c {
+            'a'..='z' => count[c as usize - 'a' as usize] += 1,
+            'A'..='Z' => count[c as usize - 'A' as usize] += 1,
+            _ => (),
+        }
+    }
+    String::new()
+}
+
+pub fn mono(message: &str, key: &str) -> String {
+    let mut ret = String::new();
+    for ch in message.chars() {
+        if ch.is_ascii_alphabetic() {
+            ret.push(
+                key.chars()
+                    .nth(ch.to_ascii_lowercase() as usize - 'a' as usize)
+                    .unwrap(),
+            );
+        } else {
+            ret.push(ch);
+        }
+    }
+    ret
 }
 
 /**

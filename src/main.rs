@@ -9,7 +9,7 @@ mod oracle;
 mod random;
 
 use oracle::Oracle;
-use diff_fmt::*;
+//use diff_fmt::*;
 
 /**
  * Note: this main only runs one challenge
@@ -20,7 +20,7 @@ use diff_fmt::*;
 
 fn main() {
     challenge_3_22();
-    println!("---------- Ok {}", crate::cipher::BLOCK_SIZE);
+    println!("---------- Ok {}", cipher::BLOCK_SIZE);
 }
 
 
@@ -42,8 +42,8 @@ fn challenge_3_22() {
     println!("{:032b}", random::B & (random::B << random::S));
     println!("{:032b}", random::B ^ (random::B & (random::B << random::S)));
     println!();
-    println!("{:032b}", diff(&rng.get_internal(0), &y));
-    println!("{:032b}", diff(&y, &rng.get_internal(0)));
+    //println!("{:032b}", diff(&rng.get_internal(0), &y));
+    //println!("{:032b}", diff(&y, &rng.get_internal(0)));
     // println!(
     //     "{}",
     //     print::mask_bin(rng.get_internal(0), random::B & (random::B << random::S))
@@ -79,7 +79,7 @@ fn challenge_3_20() {
 
     for column in columns_enc {
         let (plain, _key, _score) =
-            decrypt::decrypt_xor(column, keys::KeyGen::new(1), lang::count_invalid_letters);
+            decrypt::decrypt_xor(column, keys::KeyGen::new(1), &lang::count_invalid_letters);
         columns_plain.push(plain);
     }
     let rows_plain = data::Bytes::pivot(columns_plain);
@@ -102,7 +102,7 @@ fn challenge_3_19() {
 
     for column in columns_enc {
         let (plain, _key, _score) =
-            decrypt::decrypt_xor(column, keys::KeyGen::new(1), lang::count_invalid_letters);
+            decrypt::decrypt_xor(column, keys::KeyGen::new(1), &lang::count_invalid_letters);
         columns_plain.push(plain);
     }
     let rows_plain = data::Bytes::pivot(columns_plain);
@@ -328,7 +328,7 @@ fn challenge_1_6() {
     let mut key = String::new();
     for block in blocks {
         //decrypt::decrypt_xor(raw, keys::KeyGen::new(1), lang::score_string);
-        let result = decrypt::decrypt_xor(block, keys::KeyGen::new(1), lang::score_string);
+        let result = decrypt::decrypt_xor(block, keys::KeyGen::new(1), &lang::score_string);
         key.push(result.1.get(0));
     }
     println!("Key Guess: {}", key);
@@ -348,12 +348,12 @@ fn challenge_1_5() {
 }
 
 fn challenge_1_4() {
-    let mut best = (data::Bytes::default(), data::Bytes::default(), 0);
+    let mut best = (data::Bytes::default(), data::Bytes::default(), 0.0);
 
     let raw_iter = file::File::read_hex_file("data_1_4");
 
     for raw in raw_iter {
-        let tmp = decrypt::decrypt_xor(raw, keys::KeyGen::new(1), lang::score_string);
+        let tmp = decrypt::decrypt_xor(raw, keys::KeyGen::new(1), &lang::score_string);
         if tmp.2 > best.2 {
             best = tmp;
         }
@@ -368,7 +368,7 @@ fn challenge_1_3() {
 
     println!(
         "{}",
-        decrypt::decrypt_xor(raw1, keys::KeyGen::new(1), lang::score_string).0
+        decrypt::decrypt_xor(raw1, keys::KeyGen::new(1), &lang::score_string).0
     );
 }
 

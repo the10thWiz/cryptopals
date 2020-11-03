@@ -8,4 +8,4 @@ edition = "2018"
 openssl = { version = "0.10", features = ["vendored"] }
 rand = "0.7"
 termion = "1.5"
-diff_fmt = "0.1"
+

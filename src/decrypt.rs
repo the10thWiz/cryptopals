@@ -10,9 +10,9 @@ use crate::oracle::{CBCPaddingOracle, Oracle};
 pub fn decrypt_xor(
     data: Bytes,
     key: impl Iterator<Item = Bytes>,
-    score: fn(&str) -> isize,
-) -> (Bytes, Bytes, isize) {
-    let mut min = isize::max_value();
+    score: &Fn(&str) -> f64,
+) -> (Bytes, Bytes, f64) {
+    let mut min = f64::INFINITY;
     let mut k: Bytes = Bytes::zero(1);
     let mut best = Bytes::zero(0);
     for b in key {
