@@ -94,11 +94,11 @@ pub fn histogram_score(s: &str) -> f64 {
             _ => 0,
         };
         //println!(
-            //"{}: {:05.2}% vs {:05.2}%, {}",
-            //(i as u8 + 'a' as u8) as char,
-            //act * 100.0,
-            //ex,
-            //mult
+        //"{}: {:05.2}% vs {:05.2}%, {}",
+        //(i as u8 + 'a' as u8) as char,
+        //act * 100.0,
+        //ex,
+        //mult
         //);
         diff += (act * 1000.0 - ex * 10.0).abs().round() * mult as f64;
     }

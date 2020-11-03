@@ -1,6 +1,6 @@
+use crate::cipher::*;
 use crate::data::Bytes;
 use crate::file::File;
-use crate::cipher::*;
 use rand::prelude::*;
 
 /**
@@ -24,7 +24,7 @@ pub trait Oracle {
  */
 pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
     let mut rng = thread_rng();
-    
+
     let plain = (Bytes::rand(rng.gen_range(5, 10)) + input + Bytes::rand(rng.gen_range(5, 10)))
         .pad_pkcs7(BLOCK_SIZE);
     if rng.gen() {
@@ -52,9 +52,16 @@ impl OracleSimple {
 }
 impl Oracle for OracleSimple {
     fn encrypt(&self, input: Bytes) -> Bytes {
-        aes_ecb_en((input+Bytes::read_64("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
+        aes_ecb_en(
+            (input
+                + Bytes::read_64(
+                    "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
     gaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IH\
-    N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK")).pad_pkcs7(BLOCK_SIZE), self.key.clone())
+    N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK",
+                ))
+            .pad_pkcs7(BLOCK_SIZE),
+            self.key.clone(),
+        )
     }
     fn decrypt(&self, input: Bytes) {
         println!("{:16?}", aes_ecb_de(input, self.key.clone()));
@@ -124,9 +131,15 @@ pub struct RandomOracle {
 
 impl RandomOracle {
     pub fn new() -> Self {
-        RandomOracle {key: Bytes::rand(BLOCK_SIZE), target : Bytes::read_64("Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
+        RandomOracle {
+            key: Bytes::rand(BLOCK_SIZE),
+            target: Bytes::read_64(
+                "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
 gaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IH\
-N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK"), prefix: Bytes::rand(random::<u8>() as usize) }
+N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK",
+            ),
+            prefix: Bytes::rand(random::<u8>() as usize),
+        }
     }
 }
 impl Oracle for RandomOracle {

@@ -1,4 +1,3 @@
-
 mod aes;
 use crate::data::Bytes;
 use std::collections::LinkedList;
@@ -6,23 +5,23 @@ use std::collections::LinkedList;
 pub const BLOCK_SIZE: usize = 16;
 
 pub fn aes_ecb_en(input: Bytes, key: Bytes) -> Bytes {
-    if input.len()%16 != 0 {
+    if input.len() % 16 != 0 {
         panic!("Input is not padded correctly");
     }
     let mut output = Bytes::with_capacity(input.len());
     for part in input.split(16) {
-        output+= aes::aes_block_encrypt(part, key.clone());
+        output += aes::aes_block_encrypt(part, key.clone());
     }
     output
 }
 
 pub fn aes_ecb_de(input: Bytes, key: Bytes) -> Bytes {
-    if input.len()%16 != 0 {
+    if input.len() % 16 != 0 {
         panic!("Input is not padded correctly");
     }
     let mut output = Bytes::with_capacity(input.len());
     for part in input.split(16) {
-        output+= aes::aes_block_decrypt(part, key.clone());
+        output += aes::aes_block_decrypt(part, key.clone());
     }
     output
 }
@@ -31,14 +30,14 @@ pub fn aes_ecb_de(input: Bytes, key: Bytes) -> Bytes {
  * Encrypts data using AES CBC mode
  */
 pub fn aes_cbc_en(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
-    if input.len()%16 != 0 {
+    if input.len() % 16 != 0 {
         panic!("Input is not padded correctly");
     }
     let mut output = Bytes::with_capacity(input.len());
     let mut last = iv;
     for part in input.split(16) {
         last = aes::aes_block_encrypt(last ^ part, key.clone());
-        output+= last.clone();
+        output += last.clone();
     }
     output
 }
@@ -46,18 +45,17 @@ pub fn aes_cbc_en(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
  * Decrypts data using AES CBC mode
  */
 pub fn aes_cbc_de(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
-    if input.len()%16 != 0 {
+    if input.len() % 16 != 0 {
         panic!("Input is not padded correctly");
     }
     let mut output = Bytes::with_capacity(input.len());
     let mut last = iv;
     for part in input.split(16) {
-        output+= last ^ aes::aes_block_encrypt(part.clone(), key.clone());
+        output += last ^ aes::aes_block_encrypt(part.clone(), key.clone());
         last = part;
     }
     output
 }
-
 
 union RunningCounter {
     counters: [u64; 2],

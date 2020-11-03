@@ -1,6 +1,7 @@
-mod ops;
-mod display;
 mod conversion;
+mod display;
+mod ops;
+
 use crate::cipher::BLOCK_SIZE;
 use rand::prelude::random;
 /*
@@ -10,26 +11,26 @@ use rand::prelude::random;
     TODO: Write better Documentation
 */
 
-/**
- * A Standard buffer for binary data. This struct offers a variety of
- * convience methods for manipulating the data buffered inside.
- *
- * The following operator overloads are defined:
- *
- * Binary xor => xors raw data, byte for byte. right will be repeated
- * if it is shorter
- *
- * Add => Concatinates buffers
- *
- * Index => extracts raw data at index (u8), or slice(&[u8])
- *
- * Multiply => repeats buffer x number of times
- *
- * Equals/Compare => compares raw data in buffers
- *
- * Display and Debug => Defualts to printing as utf-8, UpperHex is also
- * implemented
- */
+///
+/// A Standard buffer for binary data. This struct offers a variety of
+/// convience methods for manipulating the data buffered inside.
+///
+/// The following operator overloads are defined:
+///
+/// Binary xor => xors raw data, byte for byte. right will be repeated
+/// if it is shorter
+///
+/// Add => Concatinates buffers
+///
+/// Index => extracts raw data at index (u8), or slice(&[u8])
+///
+/// Multiply => repeats buffer x number of times
+///
+/// Equals/Compare => compares raw data in buffers
+///
+/// Display and Debug => Defualts to printing as utf-8, UpperHex is also
+/// implemented
+///
 #[derive(Clone, Default)]
 pub struct Bytes {
     bytes: Vec<u8>,
@@ -37,23 +38,27 @@ pub struct Bytes {
 
 impl Bytes {
     pub fn new() -> Bytes {
-        Self {bytes: Vec::new()}
+        Self { bytes: Vec::new() }
     }
     pub fn with_capacity(size: usize) -> Bytes {
-        Self {bytes: Vec::with_capacity(size)}
+        Self {
+            bytes: Vec::with_capacity(size),
+        }
     }
     pub fn empty() -> Bytes {
-        Self {bytes: Vec::default()}
+        Self {
+            bytes: Vec::default(),
+        }
     }
-    /**
-     * Reads raw u8 values from `v`
-     */
+    ///
+    /// Reads raw u8 values from `v`
+    ///
     pub fn from_vec(v: Vec<u8>) -> Bytes {
         Bytes { bytes: v }
     }
-    /**
-     * Reads raw u8 values from `v`
-     */
+    ///
+    /// Reads raw u8 values from `v`
+    ///
     pub fn from_bytes(v: &[u8]) -> Bytes {
         let mut ret = Bytes {
             bytes: Vec::with_capacity(v.len()),
@@ -63,10 +68,10 @@ impl Bytes {
         }
         ret
     }
-    /**
-     * Creates a new buffer of length `size`, filled with
-     * binary zeros
-     */
+    ///
+    /// Creates a new buffer of length `size`, filled with
+    /// binary zeros
+    ///
     pub fn zero(size: usize) -> Bytes {
         let mut ret = Vec::new();
         for _ in 0..size {
@@ -74,10 +79,10 @@ impl Bytes {
         }
         Bytes { bytes: ret }
     }
-    /**
-     * Generates a new buffer of length `size`, filled
-     * with random data
-     */
+    ///
+    /// Generates a new buffer of length `size`, filled
+    /// with random data
+    ///
     pub fn rand(size: usize) -> Bytes {
         let mut ret = Vec::new();
         for _ in 0..size {
@@ -85,17 +90,17 @@ impl Bytes {
         }
         Bytes { bytes: ret }
     }
-    /**
-     * Returns raw data buffer as a `&[u8]`
-     */
+    ///
+    /// Returns raw data buffer as a `&[u8]`
+    ///
     pub fn to_bytes(&self) -> &[u8] {
         &self.bytes
     }
-    /**
-     * Creates a `Vec` of size `block`, and creates a Bytes for each `block`
-     *
-     * e.g. [1F 22 33 44].collate(2) -> [[1F 33], [22 44]]
-     */
+    ///
+    /// Creates a `Vec` of size `block`, and creates a Bytes for each `block`
+    ///
+    /// e.g. [1F 22 33 44].collate(2) -> [[1F 33], [22 44]]
+    ///
     pub fn collate(&self, block: usize) -> Vec<Bytes> {
         let mut ret = Vec::new();
         for _ in 0..block {
@@ -106,11 +111,11 @@ impl Bytes {
         }
         ret
     }
-    /**
-     * Undoes collate method
-     * 
-     * `Bytes::decollate(a.collate(x)) == a`, for any x
-     */
+    ///
+    /// Undoes collate method
+    ///
+    /// `Bytes::decollate(a.collate(x)) == a`, for any x
+    ///
     pub fn decollate(parts: Vec<Bytes>) -> Bytes {
         let mut ret = Vec::new();
         for i in 0..parts.first().unwrap().len() {
@@ -124,10 +129,10 @@ impl Bytes {
 
         Bytes { bytes: ret }
     }
-    /**
-     * Splits raw data buffer into `Bytes` of size
-     * block
-     */
+    ///
+    /// Splits raw data buffer into `Bytes` of size
+    /// block
+    ///
     pub fn split(&self, len: usize) -> Vec<Bytes> {
         let mut ret: Vec<Bytes> = Vec::new();
         for i in 0..self.bytes.len() / len {
@@ -139,10 +144,10 @@ impl Bytes {
         }
         ret
     }
-    /**
-     * Pads data to a multiple of `padding`, using
-     * PKCS#7
-     */
+    ///
+    /// Pads data to a multiple of `padding`, using
+    /// PKCS#7
+    ///
     pub fn pad_pkcs7(&self, padding: usize) -> Bytes {
         let mut ret = self.clone();
         let num = padding - self.len() % padding;
@@ -151,13 +156,13 @@ impl Bytes {
         }
         ret
     }
-    /**
-     * Trims PKCS#7 padding from bytes
-     * 
-     * Doesn't assume any padding has been applied, and
-     * just returns itself if the last byte isn't a multiple
-     * of the padding
-     */
+    ///
+    /// Trims PKCS#7 padding from bytes
+    ///
+    /// Doesn't assume any padding has been applied, and
+    /// just returns itself if the last byte isn't a multiple
+    /// of the padding
+    ///
     pub fn trim_pkcs7(&self) -> Bytes {
         let pad_num = self.bytes[self.bytes.len() - 1] as usize;
         // println!("{}", pad_num);
@@ -171,10 +176,10 @@ impl Bytes {
         }
         self.clone()
     }
-    /**
-     * Truncates data to len bytes, discarding any data after
-     * the cutoff
-     */
+    ///
+    /// Truncates data to len bytes, discarding any data after
+    /// the cutoff
+    ///
     pub fn truncate(&self, len: usize) -> Bytes {
         let mut ret = self.clone();
         while ret.bytes.len() > len {
@@ -182,9 +187,9 @@ impl Bytes {
         }
         ret
     }
-    /**
-     * Discard first len bytes
-     */
+    ///
+    /// Discard first len bytes
+    ///
     pub fn truncate_start(&self, len: usize) -> Bytes {
         let mut ret = self.clone();
         for _ in 0..len {
@@ -192,9 +197,9 @@ impl Bytes {
         }
         ret
     }
-    /**
-     * replace bytes from `index` with `part`
-     */
+    ///
+    /// replace bytes from `index` with `part`
+    ///
     pub fn replace(&self, part: &[u8], index: usize) -> Bytes {
         if part.len() + index > self.bytes.len() {
             panic!("Part is to long to fit");
@@ -205,9 +210,9 @@ impl Bytes {
         }
         Bytes { bytes: ret }
     }
-    /**
-     * replace bytes from `block * open_ssl::BLOCK_SIZE` with `part`
-     */
+    ///
+    /// replace bytes from `block * open_ssl::BLOCK_SIZE` with `part`
+    ///
     pub fn replace_block(&self, part: &[u8], block: usize) -> Bytes {
         if part.len() + block * 16 > self.bytes.len() {
             panic!("Part is to long to fit");
@@ -218,17 +223,17 @@ impl Bytes {
         }
         Bytes { bytes: ret }
     }
-    /**
-     * Similar to `self[i]`, except the return type is `char`
-     */
+    ///
+    /// Similar to `self[i]`, except the return type is `char`
+    ///
     pub fn get(&self, i: usize) -> char {
-        return self.bytes[i] as char;
+        self.bytes[i] as char
     }
-    /**
-     * Increments data from the right
-     *
-     * returns true if data rolls over from the max value
-     */
+    ///
+    /// Increments data from the right
+    ///
+    /// returns true if data rolls over from the max value
+    ///
     pub fn inc(&mut self) -> bool {
         for b in self.bytes.iter_mut().rev() {
             if *b == 255 {
@@ -240,9 +245,9 @@ impl Bytes {
         }
         true
     }
-    /**
-     * Only returns true if data is entirely zeros
-     */
+    ///
+    /// Only returns true if data is entirely zeros
+    ///
     pub fn is_zero(&self) -> bool {
         for b in self.bytes.iter() {
             if *b != 0 {
@@ -251,16 +256,16 @@ impl Bytes {
         }
         true
     }
-    /**
-     * Length of buffer, in bytes
-     */
+    ///
+    /// Length of buffer, in bytes
+    ///
     pub fn len(&self) -> usize {
         self.bytes.len()
     }
-    /**
-     * Creates a new buffer with only values that don't match
-     * `val`
-     */
+    ///
+    /// Creates a new buffer with only values that don't match
+    /// `val`
+    ///
     pub fn remove(&self, val: u8) -> Bytes {
         let mut ret = Vec::new();
         for b in self.bytes.iter() {
@@ -270,7 +275,10 @@ impl Bytes {
         }
         Bytes { bytes: ret }
     }
-
+    /// Transposes the vector of bytes
+    ///
+    /// Most useful when converting a series of blocks into seperate
+    /// parts. Intended for things like repeating key xor, etc
     pub fn pivot(v: Vec<Bytes>) -> Vec<Bytes> {
         let mut len = usize::max_value();
         for t in v.iter() {
@@ -289,4 +297,3 @@ impl Bytes {
         ret
     }
 }
-

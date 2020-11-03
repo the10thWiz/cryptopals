@@ -1,10 +1,9 @@
-
 use super::Bytes;
 use std::ops::{
     Add, AddAssign, BitXor, BitXorAssign, Deref, Index, IndexMut, Mul, MulAssign, Range, RangeFrom,
     RangeFull, RangeTo,
 };
-use std::slice::{IterMut, Iter};
+use std::slice::{Iter, IterMut};
 
 impl Bytes {
     pub fn iter_mut(&mut self) -> IterMut<u8> {

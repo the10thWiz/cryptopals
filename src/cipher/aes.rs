@@ -1,4 +1,3 @@
-
 use crate::data::Bytes;
 
 /**
@@ -32,15 +31,15 @@ pub fn aes_block_decrypt(cipher: Bytes, k: Bytes) -> Bytes {
 
     // println!("round[ 0].iinput   {:x}", ret);
     // println!("round[ 0].ik_sch   {:x}", Bytes::as_one(&keys[40..44]));
-    add_round_key(&mut ret, &keys[40..44]);// See Sec. 5.1.4
+    add_round_key(&mut ret, &keys[40..44]); // See Sec. 5.1.4
     for i in (1..10).rev() {
         // println!("round[ {}].istart   {:x}", 10-i, ret);
         inv_shift_rows(&mut ret); // See Sec. 5.3.1
-        // println!("round[ {}].is_row   {:x}", 10-i, ret);
+                                  // println!("round[ {}].is_row   {:x}", 10-i, ret);
         inv_sub_bytes(&mut ret); // See Sec. 5.3.2
-        // println!("round[ {}].is_box   {:x}", 10-i, ret);
-        // println!("round[ {}].ik_sch   {:x}", 10-i, Bytes::as_one(&keys[i*4..i*4+4]));
-        add_round_key(&mut ret, &keys[i*4..i*4+4]);
+                                 // println!("round[ {}].is_box   {:x}", 10-i, ret);
+                                 // println!("round[ {}].ik_sch   {:x}", 10-i, Bytes::as_one(&keys[i*4..i*4+4]));
+        add_round_key(&mut ret, &keys[i * 4..i * 4 + 4]);
         // println!("round[ {}].ik_add   {:x}", 10-i, ret);
         inv_mix_columns(&mut ret); // See Sec. 5.3.3
     }
@@ -180,8 +179,8 @@ fn shift_rows(block: &mut Bytes) {
  */
 fn inv_shift_rows(block: &mut Bytes) {
     let tmp = block[3]; // first byte, second row
-    block[3] = block[7];// 1 5  9 13
-    block[7] = block[11];// 3 7 11 15
+    block[3] = block[7]; // 1 5  9 13
+    block[7] = block[11]; // 3 7 11 15
     block[11] = block[15];
     block[15] = tmp;
 
@@ -193,8 +192,8 @@ fn inv_shift_rows(block: &mut Bytes) {
     block[6] = tmp;
 
     let tmp = block[1]; // third byte, fourth row
-    block[1] = block[13];// 3 7 11 15
-    block[13] = block[9];// 1 5  9 13
+    block[1] = block[13]; // 3 7 11 15
+    block[13] = block[9]; // 1 5  9 13
     block[9] = block[5];
     block[5] = tmp;
 }

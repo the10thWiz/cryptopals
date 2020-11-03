@@ -1,47 +1,47 @@
 use super::Bytes;
-use std::fmt::{Debug, Display, Formatter, Result, UpperHex, LowerHex, Alignment};
+use std::fmt::{Alignment, Debug, Display, Formatter, LowerHex, Result, UpperHex};
 
 impl Bytes {
     fn fmt_tmp(s: String, mult: usize, f: &mut Formatter) -> Result {
         if let Some(width) = f.width() {
             let mut i = 0;
-            if s.len() > width*mult {
+            if s.len() > width * mult {
                 for c in s.chars() {
                     write!(f, "{}", c)?;
-                    i+= 1;
-                    if i >= width*mult {
+                    i += 1;
+                    if i >= width * mult {
                         i = 0;
                         writeln!(f)?;
                     }
                 }
-            }else {
+            } else {
                 if let Some(align) = f.align() {
                     match align {
                         Alignment::Left => {
                             write!(f, "{}", s)?;
-                            for _ in 0..width*mult-s.len() {
+                            for _ in 0..width * mult - s.len() {
                                 write!(f, "{}", f.fill())?;
                             }
-                        },
+                        }
                         Alignment::Right => {
-                            for _ in 0..width*mult-s.len() {
+                            for _ in 0..width * mult - s.len() {
                                 write!(f, "{}", f.fill())?;
                             }
                             write!(f, "{}", s)?;
-                        },
+                        }
                         Alignment::Center => {
-                            for _ in 0..(width*mult-s.len())/2 {
+                            for _ in 0..(width * mult - s.len()) / 2 {
                                 write!(f, "{}", f.fill())?;
                             }
                             write!(f, "{}", s)?;
 
-                            for _ in 0..(width*mult-s.len())/2 {
+                            for _ in 0..(width * mult - s.len()) / 2 {
                                 write!(f, "{}", f.fill())?;
                             }
-                        },
+                        }
                     }
-                }else {
-                    for _ in 0..width*2-s.len() {
+                } else {
+                    for _ in 0..width * 2 - s.len() {
                         write!(f, "{}", f.fill())?;
                     }
                     write!(f, "{}", s)?;

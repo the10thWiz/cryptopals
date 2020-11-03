@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-mod data;
 mod cipher;
+mod data;
 mod decrypt;
 mod file;
 mod keys;
@@ -23,7 +23,6 @@ fn main() {
     println!("---------- Ok {}", cipher::BLOCK_SIZE);
 }
 
-
 fn challenge_3_22() {
     // Rust doesn't have an easy way to get the seconds since the UNIX_EPOCH, so I just used a random value
     // from the rand module
@@ -40,7 +39,10 @@ fn challenge_3_22() {
     println!("{:032b}", random::B);
     println!("{:032b}", random::B << random::S);
     println!("{:032b}", random::B & (random::B << random::S));
-    println!("{:032b}", random::B ^ (random::B & (random::B << random::S)));
+    println!(
+        "{:032b}",
+        random::B ^ (random::B & (random::B << random::S))
+    );
     println!();
     //println!("{:032b}", diff(&rng.get_internal(0), &y));
     //println!("{:032b}", diff(&y, &rng.get_internal(0)));

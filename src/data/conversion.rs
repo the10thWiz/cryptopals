@@ -229,7 +229,7 @@ impl Bytes {
 
     /**
      * Reads data as hex values from `s`
-     * 
+     *
      * Allows both upper and lower case
      */
     pub fn read_hex(s: &str) -> Bytes {
@@ -281,7 +281,7 @@ impl Bytes {
     }
     /**
      * Reads data as base 64 values from `s`
-     * 
+     *
      * Allows, but does not require `=` padding
      */
     pub fn read_64(s: &str) -> Bytes {
@@ -372,4 +372,3 @@ impl Bytes {
         ret
     }
 }
-
