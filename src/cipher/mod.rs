@@ -1,4 +1,10 @@
+
 mod aes;
+pub mod rsa;
+pub mod stream;
+
+use stream::{StreamCipher, SeekableStreamCipher};
+
 use crate::data::Bytes;
 use std::collections::LinkedList;
 
@@ -78,21 +84,44 @@ impl CTRstream {
             current: LinkedList::new(),
         }
     }
-    pub fn crypt(&mut self, input: Bytes) -> Bytes {
-        let mut ret = Bytes::zero(input.len());
-        for i in 0..input.len() {
-            if self.current.is_empty() {
-                let data;
-                unsafe {
-                    data = Bytes::from_bytes(&self.counter.input[..]);
-                    self.counter.counters[1] += 1;
-                }
-                for b in aes_ecb_en(data, self.key.clone()).to_bytes() {
-                    self.current.push_back(*b);
-                }
-            }
-            ret[i] = input[i] ^ self.current.pop_front().unwrap();
+    //pub fn crypt(&mut self, input: Bytes) -> Bytes {
+        //let mut ret = Bytes::zero(input.len());
+        //for i in 0..input.len() {
+            //if self.current.is_empty() {
+                //let data;
+                //unsafe {
+                    //data = Bytes::from_bytes(&self.counter.input[..]);
+                    //self.counter.counters[1] += 1;
+                //}
+                //for b in aes_ecb_en(data, self.key.clone()).to_bytes() {
+                    //self.current.push_back(*b);
+                //}
+            //}
+            //ret[i] = input[i] ^ self.current.pop_front().unwrap();
+        //}
+        //ret
+    //}
+}
+
+impl StreamCipher for CTRstream {
+    fn get_next(&mut self) -> Bytes {
+        unsafe {
+            let data = Bytes::from_bytes(&self.counter.input);
+            self.counter.counters[1] += 1;
+            aes_ecb_en(data, self.key.clone())
         }
-        ret
+    }
+}
+
+impl SeekableStreamCipher for CTRstream {
+    fn get(&self, location: usize) -> (usize, Bytes) {
+        let counter_val = location as u64 / BLOCK_SIZE as u64;
+        unsafe {
+            let cur_counter = RunningCounter {
+                counters: [self.counter.counters[0], counter_val]
+            };
+            let data = Bytes::from_bytes(&cur_counter.input);
+            (counter_val as usize * BLOCK_SIZE, aes_ecb_en(data, self.key.clone()))
+        }
     }
 }

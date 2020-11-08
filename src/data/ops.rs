@@ -23,41 +23,92 @@ impl Deref for Bytes {
 }
 
 impl BitXor for Bytes {
-    type Output = Self;
+    type Output = Bytes;
 
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor(self, other: Self) -> Self::Output {
         let mut ret = Vec::new();
-        for b in self.bytes.iter().enumerate() {
-            ret.push(*b.1 ^ *other.bytes.get(b.0 % other.bytes.len()).unwrap());
+        for (b, o) in self.iter().zip(other.iter()) {
+            ret.push(b ^ o);
         }
         Bytes { bytes: ret }
     }
 }
+
+impl BitXor for &Bytes {
+    type Output = Bytes;
+
+    // rhs is the "right-hand side" of the expression `a ^ b`
+    fn bitxor(self, other: Self) -> Self::Output {
+        let mut ret = Vec::new();
+        for (b, o) in self.iter().zip(other.iter()) {
+            ret.push(b ^ o);
+        }
+        Bytes { bytes: ret }
+    }
+}
+
+impl BitXor<Bytes> for &Bytes {
+    type Output = Bytes;
+
+    // rhs is the "right-hand side" of the expression `a ^ b`
+    fn bitxor(self, other: Bytes) -> Self::Output {
+        let mut ret = Vec::new();
+        for (b, o) in self.iter().zip(other.iter()) {
+            ret.push(b ^ o);
+        }
+        Bytes { bytes: ret }
+    }
+}
+
+impl BitXor<&Bytes> for Bytes {
+    type Output = Bytes;
+
+    // rhs is the "right-hand side" of the expression `a ^ b`
+    fn bitxor(self, other: &Self) -> Self::Output {
+        let mut ret = Vec::new();
+        for (b, o) in self.iter().zip(other.iter()) {
+            ret.push(b ^ o);
+        }
+        Bytes { bytes: ret }
+    }
+}
+
 impl BitXorAssign for Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor_assign(&mut self, other: Self) {
-        for b in self.bytes.iter_mut().enumerate() {
-            *b.1 = *b.1 ^ other.bytes.get(b.0 % other.bytes.len()).unwrap();
+        for (b, o) in self.iter_mut().zip(other.iter()) {
+            *b = *b ^ o;
         }
     }
 }
+
+impl BitXorAssign<&Self> for Bytes {
+    // rhs is the "right-hand side" of the expression `a ^ b`
+    fn bitxor_assign(&mut self, other: &Self) {
+        for (b, o) in self.iter_mut().zip(other.iter()) {
+            *b = *b ^ o;
+        }
+    }
+}
+
 impl BitXor<u8> for Bytes {
     type Output = Self;
 
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor(self, other: u8) -> Self::Output {
         let mut ret = Vec::new();
-        for b in self.bytes.iter() {
+        for b in self.iter() {
             ret.push(*b ^ other);
         }
         Bytes { bytes: ret }
     }
 }
+
 impl BitXorAssign<u8> for Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor_assign(&mut self, other: u8) {
-        for b in self.bytes.iter_mut() {
+        for b in self.iter_mut() {
             *b = *b ^ other;
         }
     }
@@ -71,6 +122,7 @@ impl Add<Self> for Bytes {
         Self { bytes: ret }
     }
 }
+
 impl Add<Bytes> for u8 {
     type Output = Bytes;
     fn add(self, other: Bytes) -> Bytes {
@@ -79,11 +131,13 @@ impl Add<Bytes> for u8 {
         Bytes { bytes: ret }
     }
 }
+
 impl AddAssign<Self> for Bytes {
     fn add_assign(&mut self, other: Self) {
         self.bytes.append(&mut other.bytes.clone());
     }
 }
+
 impl Add<u8> for Bytes {
     type Output = Self;
     fn add(self, other: u8) -> Self {
@@ -92,11 +146,13 @@ impl Add<u8> for Bytes {
         Self { bytes: ret }
     }
 }
+
 impl AddAssign<u8> for Bytes {
     fn add_assign(&mut self, other: u8) {
         self.bytes.push(other);
     }
 }
+
 impl Mul<usize> for Bytes {
     type Output = Self;
     fn mul(self, num: usize) -> Self {
@@ -110,13 +166,18 @@ impl Mul<usize> for Bytes {
         Self { bytes: ret }
     }
 }
+
 impl MulAssign<usize> for Bytes {
     fn mul_assign(&mut self, num: usize) {
-        let mut ret = self.bytes.clone();
-        for _ in 1..num {
-            ret.append(&mut self.bytes.clone());
+        if num == 0 {
+            self.bytes = vec![];
+        }else {
+            let mut ret = self.bytes.clone();
+            for _ in 1..num {
+                ret.append(&mut self.bytes.clone());
+            }
+            self.bytes = ret;
         }
-        self.bytes = ret;
     }
 }
 
@@ -127,11 +188,13 @@ impl Index<usize> for Bytes {
         &self.bytes[i]
     }
 }
+
 impl IndexMut<usize> for Bytes {
     fn index_mut(&mut self, i: usize) -> &mut Self::Output {
         &mut self.bytes[i]
     }
 }
+
 impl Index<Range<usize>> for Bytes {
     type Output = [u8];
 
@@ -139,11 +202,13 @@ impl Index<Range<usize>> for Bytes {
         &self.bytes[i]
     }
 }
+
 impl IndexMut<Range<usize>> for Bytes {
     fn index_mut(&mut self, i: Range<usize>) -> &mut Self::Output {
         &mut self.bytes[i]
     }
 }
+
 impl Index<RangeFrom<usize>> for Bytes {
     type Output = [u8];
 
@@ -151,11 +216,13 @@ impl Index<RangeFrom<usize>> for Bytes {
         &self.bytes[i]
     }
 }
+
 impl IndexMut<RangeFrom<usize>> for Bytes {
     fn index_mut(&mut self, i: RangeFrom<usize>) -> &mut Self::Output {
         &mut self.bytes[i]
     }
 }
+
 impl Index<RangeTo<usize>> for Bytes {
     type Output = [u8];
 
@@ -163,11 +230,13 @@ impl Index<RangeTo<usize>> for Bytes {
         &self.bytes[i]
     }
 }
+
 impl IndexMut<RangeTo<usize>> for Bytes {
     fn index_mut(&mut self, i: RangeTo<usize>) -> &mut Self::Output {
         &mut self.bytes[i]
     }
 }
+
 impl Index<RangeFull> for Bytes {
     type Output = [u8];
 
@@ -175,6 +244,7 @@ impl Index<RangeFull> for Bytes {
         &self.bytes
     }
 }
+
 impl IndexMut<RangeFull> for Bytes {
     fn index_mut(&mut self, _: RangeFull) -> &mut Self::Output {
         &mut self.bytes
@@ -184,7 +254,7 @@ impl IndexMut<RangeFull> for Bytes {
 impl PartialEq for Bytes {
     fn eq(&self, other: &Self) -> bool {
         if self.bytes.len() == other.bytes.len() {
-            for v in self.bytes.iter().zip(other.bytes.iter()) {
+            for v in self.iter().zip(other.iter()) {
                 if v.0 != v.1 {
                     return false;
                 }
@@ -195,11 +265,13 @@ impl PartialEq for Bytes {
         }
     }
 }
+
 impl PartialEq<&str> for Bytes {
     fn eq(&self, other: &&str) -> bool {
         self.to_hex() == other.to_uppercase()
     }
 }
+
 impl std::cmp::Eq for Bytes {}
 
 impl std::cmp::PartialOrd for Bytes {
@@ -207,6 +279,7 @@ impl std::cmp::PartialOrd for Bytes {
         Some(self.cmp(other))
     }
 }
+
 impl std::cmp::Ord for Bytes {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         if self.bytes.len() > other.bytes.len() {
@@ -214,7 +287,7 @@ impl std::cmp::Ord for Bytes {
         } else if self.bytes.len() < other.bytes.len() {
             std::cmp::Ordering::Less
         } else {
-            for bytes in self.bytes.iter().zip(other.bytes.iter()) {
+            for bytes in self.iter().zip(other.iter()) {
                 if bytes.0 > bytes.1 {
                     return std::cmp::Ordering::Greater;
                 } else if bytes.0 < bytes.1 {
