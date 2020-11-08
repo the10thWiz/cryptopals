@@ -6,6 +6,6 @@ edition = "2018"
 
 [dependencies]
 rand = "0.7"
-num-bigint = { version = "0.2", features = ["rand"] }
+num-bigint = { version = "0.3", features = ["rand"] }
 termion = "1.5"
 

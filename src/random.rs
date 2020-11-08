@@ -20,8 +20,11 @@ pub const L: u32 = 18;
 // l = 18
 pub const F: u64 = 1812433253;
 
-const LOWSER_MASK: u32 = (1 << R) - 1; // That is, the binary number of r 1's
-const UPPER_MASK: u32 = !LOWSER_MASK;
+pub const LOWER_MASK: u32 = (1 << R) - 1; // That is, the binary number of r 1's
+pub const UPPER_MASK: u32 = !LOWER_MASK;
+
+use crate::data::Bytes;
+use crate::cipher::stream::StreamCipher;
 
 pub struct MersenneGen {
     vals: [u32; N],
@@ -44,23 +47,26 @@ impl MersenneGen {
     pub fn get_internal(&self, i: usize) -> u32 {
         self.vals[i]
     }
+    pub fn get_state(&self) -> &[u32] {
+        &self.vals
+    }
     pub fn extract_number(&mut self) -> u32 {
         if self.index >= N {
             self.twist()
         }
 
         let mut y = self.vals[self.index];
-        // y = y ^ ((y >> U) & D);
+        y = y ^ ((y >> U) & D);
         y = y ^ ((y << S) & B);
         y = y ^ ((y << T) & C);
         y = y ^ (y >> L);
 
-        self.index = self.index + 1;
+        self.index += 1;
         y // y is a u32
     }
     fn twist(&mut self) {
         for i in 0..N {
-            let x = (self.vals[i] & UPPER_MASK) + (self.vals[(i + 1) % N] & LOWSER_MASK);
+            let x = (self.vals[i] & UPPER_MASK) + (self.vals[(i + 1) % N] & LOWER_MASK);
             let mut x_a = x >> 1;
             if (x % 2) != 0 {
                 // lowest bit of x is 1
@@ -69,5 +75,11 @@ impl MersenneGen {
             self.vals[i] = self.vals[(i + M) % N] ^ x_a;
         }
         self.index = 0;
+    }
+}
+
+impl StreamCipher for MersenneGen {
+    fn get_next(&mut self) -> Bytes {
+        self.extract_number().into()
     }
 }

@@ -9,7 +9,6 @@ mod oracle;
 mod random;
 
 use oracle::Oracle;
-//use diff_fmt::*;
 
 /**
  * Note: this main only runs one challenge
@@ -19,53 +18,121 @@ use oracle::Oracle;
  */
 
 fn main() {
-    challenge_3_22();
-    println!("---------- Ok {}", cipher::BLOCK_SIZE);
+    let start = std::time::Instant::now();
+    challenge_4_25();
+    println!("Completed in {} mS", start.elapsed().as_millis());
+}
+
+fn challenge_4_25() {
+    let data = file::File::read_64_file("data_1_7").read_bytes();
+    let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
+    let plaintext = cipher::aes_ecb_de(data, key);
+
+    let key = data::Bytes::rand(16);
+    let nonce = rand::random();
+    let cipher = cipher::stream::SeekableStream::new(cipher::CTRstream::new(nonce, key));
+    let encrypted = cipher.encrypt(&plaintext, 0);
+    
+    // Get keystream by replacing the plaintext (via `edit`) with all zeros
+    let mut key_stream = encrypted.clone();
+    cipher.edit(&mut key_stream, 0, &data::Bytes::zero(encrypted.len()));
+    let recovered = key_stream ^ encrypted;
+    assert_eq!(plaintext, recovered, "Failed to recover plaintext");
+}
+
+fn challenge_3_24() {
+    // Prove that the cipher actually works
+    let seed = rand::random();
+    let mut cipher = cipher::stream::Stream::new(random::MersenneGen::new(seed));
+    let test = data::Bytes::rand(100);
+    let encrypted = cipher.encrypt(&test);
+    let mut cipher = cipher::stream::Stream::new(random::MersenneGen::new(seed));
+    let decrypted = cipher.encrypt(&encrypted);
+    assert_eq!(test, decrypted, "Encryption and decryption failed");
+
+    // Known plaintext attack
+    let seed = rand::random();
+    let mut cipher = cipher::stream::Stream::new(random::MersenneGen::new(seed));
+    
+    // Plaintest: "garbage" + "AAAAA", 0..20 bytes of garbage, 14 bytes of 'A'
+    let plaintext = data::Bytes::rand(rand::random::<usize>() % 20) + data::Bytes::from_bytes(b"A") * 14;
+    let encrypted = cipher.encrypt(&plaintext);
+    let unknown_size = encrypted.len() - 14;
+    // get the known portion of the plaintext
+    let known_plain = data::Bytes::from_bytes(&encrypted[unknown_size..]);
+    // xor with plaintext to get the keystream portion
+    let key_stream = known_plain ^ (data::Bytes::from_bytes(b"A") * 14);
+    // Every 4 bytes of the keystream is one 32bit output of the rng
+    
+    // Could brute force solution by just running through all possible seeds.
+    // The challenge does specify that the seed should only be 16 bits, so
+    // this is more feasible than with 32 bits
+    //
+    // I'm pretty sure this isn't possible otherwise, without a much larger known
+    // plaintext
+    //
+    // The password token portion is likely also a brute force operation, assuming
+    // the token was generated in the last ten minutes, there are only 10*60 seeds
+    // The token could also be chosen at random from the prng output, to increase
+    // the size, but not substantially
+}
+
+fn challenge_3_23() {
+    // randomly seed rng
+    let mut rng = random::MersenneGen::new(rand::random());
+
+    // algo from seed to first output
+    //top down input            bottom up for inverse
+    //y = y ^ ((y >> U) & D);  |
+    //let mut y = y ^ ((y >> random::U) & random::D);
+    //y = y ^ ((y << S) & B);  |
+    //let mut y = y ^ ((y << random::S) & random::B);
+    //y = y ^ ((y << T) & C);  |y = y ^ ((y << T) & C)
+    //let mut y = y ^ ((y << random::T) & random::C);
+    //y = y ^ (y >> L);        |y = y ^ (y >> L);
+    //let mut y = y ^ (y >> random::L);
+    //---------- Inverse
+    let mut state = [0u32; random::N];
+    for n in state.iter_mut() {
+        let mut y = rng.extract_number();
+        y = y ^ (y >> random::L);
+        y = y ^ ((y << random::T) & random::C);
+
+        for i in 0..32 {
+            y = y ^ ((y << random::S) & random::B & (1 << i));
+        }
+        for i in 0..32 {
+            y = y ^ ((y >> random::U) & random::D & (1 << (31 - i)));
+        }
+        //let test = rng.get_internal(0);
+        //println!("{:032b}", test);
+        //println!("{:032b}", y);
+        //println!("{}", if test == y {"Correct"} else {"Failed"});
+        *n = y;
+    }
+    for (i, (test, actual)) in state.iter().zip(rng.get_state().iter()).enumerate() {
+        if test != actual {
+            println!("Failed at {}", i);
+        }
+    }
+    /*
+     * MT19937 can be improved by hashing the outputs, which would prevent effective
+     * reversing the output back to the internal stat
+     */
 }
 
 fn challenge_3_22() {
+    /*
+     * I cannot easily do this challenge. Rust doesn't have an easy way to get the current
+     * system time, and this relies on reducing the search space by getting the current time
+     *
+     * Basically, I could grab the current system time, some time after seeding the rng, and just
+     * work backwards by brute forcing the rng generator. In the future, I might make a quick and
+     * dirty `get_system_time()`, which could implement fake time passage, and doesn't actually
+     * need to use the system time at all.
+     */
     // Rust doesn't have an easy way to get the seconds since the UNIX_EPOCH, so I just used a random value
     // from the rand module
-    let mut rng = random::MersenneGen::new(rand::random());
-    let test = rng.extract_number();
-
-    let mut y = test;
-    y = y ^ (y >> random::L);
-    y = y ^ ((y << random::T) & random::C);
-    // println!("{}", print::mask_bin(y, random::B & (random::B << random::S)));
-    y = y ^ ((y << random::S) & (random::B ^ (random::B & (random::B << random::S))));
-    y = y ^ ((y << random::S) & (random::B & (random::B << random::S)));
-    // y = y ^ ((y >> random::U) & random::D);
-    println!("{:032b}", random::B);
-    println!("{:032b}", random::B << random::S);
-    println!("{:032b}", random::B & (random::B << random::S));
-    println!(
-        "{:032b}",
-        random::B ^ (random::B & (random::B << random::S))
-    );
-    println!();
-    //println!("{:032b}", diff(&rng.get_internal(0), &y));
-    //println!("{:032b}", diff(&y, &rng.get_internal(0)));
-    // println!(
-    //     "{}",
-    //     print::mask_bin(rng.get_internal(0), random::B & (random::B << random::S))
-    // );
-    // println!(
-    //     "{}",
-    //     print::mask_bin(rng.get_internal(0), random::B ^ (random::B & (random::B << random::S)))
-    // );
-    // println!("{}", print::diff_bin(y, rng.get_internal(0)));
-    // println!();
-    // println!(
-    //     "{}",
-    //     print::mask_bin(y, random::B & (random::B << random::S))
-    // );
-    // println!(
-    //     "{}",
-    //     print::mask_bin(y >> random::S, random::B & (random::B << random::S))
-    // );
-
-    // y = y ^ (((y & random::B) << random::S) & random::B);
 }
 
 fn challenge_3_21() {
@@ -117,8 +184,8 @@ fn challenge_3_18() {
     let data = data::Bytes::read_64(
         "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==",
     );
-    let mut stream = cipher::CTRstream::new(0, data::Bytes::read_utf8("YELLOW SUBMARINE"));
-    println!("Decrypted: {}", stream.crypt(data));
+    let mut stream = cipher::stream::Stream::new(cipher::CTRstream::new(0, data::Bytes::read_utf8("YELLOW SUBMARINE")));
+    println!("Decrypted: {}", stream.encrypt(&data));
 }
 
 fn challenge_3_17() {

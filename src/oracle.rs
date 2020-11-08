@@ -1,4 +1,5 @@
 use crate::cipher::*;
+use crate::cipher::stream::Stream;
 use crate::data::Bytes;
 use crate::file::File;
 use rand::prelude::*;
@@ -272,8 +273,8 @@ pub fn gen_ctr_tests_3_19() -> Vec<Bytes> {
     let file = File::read_64_file("data_3_19");
     let key = Bytes::rand(16);
     for b in file {
-        let mut ctr = CTRstream::new(0, key.clone());
-        ret.push(ctr.crypt(b));
+        let mut ctr = Stream::new(CTRstream::new(0, key.clone()));
+        ret.push(ctr.encrypt(&b));
     }
     ret
 }
@@ -283,8 +284,8 @@ pub fn gen_ctr_tests_3_20() -> Vec<Bytes> {
     let file = File::read_64_file("data_3_20");
     let key = Bytes::rand(16);
     for b in file {
-        let mut ctr = CTRstream::new(0, key.clone());
-        ret.push(ctr.crypt(b));
+        let mut ctr = Stream::new(CTRstream::new(0, key.clone()));
+        ret.push(ctr.encrypt(&b));
     }
     ret
 }
