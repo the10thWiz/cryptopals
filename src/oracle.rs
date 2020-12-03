@@ -70,6 +70,78 @@ impl Oracle for OracleSimple {
 }
 
 /**
+ * CTR orable for 4.26
+ */
+pub struct CTROracle {
+    key: Bytes,
+    nonce: u64,
+}
+impl CTROracle {
+    pub fn new() -> Self {
+        Self {
+            key: Bytes::rand(BLOCK_SIZE),
+            nonce: rand::random(),
+        }
+    }
+}
+impl Oracle for CTROracle {
+    fn encrypt(&self, input: Bytes) -> Bytes {
+        CTRstream::new(self.nonce, self.key.clone()).crypt(input
+                + Bytes::read_64(
+                    "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
+    gaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IH\
+    N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK",
+                ))
+    }
+    fn decrypt(&self, input: Bytes) {
+        println!("{:16?}", self.encrypt(input));
+    }
+}
+/**
+ * Profile Oracle for 4.26
+ */
+pub struct CTRProfileOracle {
+    key: Bytes,
+    nonce: u64,
+}
+
+impl CTRProfileOracle {
+    pub fn new() -> Self {
+        Self {
+            key: Bytes::rand(BLOCK_SIZE),
+            nonce: rand::random(),
+        }
+    }
+    pub fn encode_profile(&self, email: Bytes) -> Bytes {
+        CTRstream::new(self.nonce, self.key.clone()).crypt(self.create_profile(email))
+    }
+    pub fn create_profile(&self, email: Bytes) -> Bytes {
+        Bytes::read_utf8("email=")
+            + email.remove('&' as u8).remove('=' as u8)
+            + Bytes::read_utf8("&uid=10&role=user")
+    }
+    pub fn get_role(&self, profile: Bytes) -> Role {
+        for p in CTRstream::new(self.nonce, self.key.clone()).crypt(profile)
+            .to_utf8()
+            .split("&")
+        {
+            let kv: Vec<&str> = p.split("=").collect();
+            if kv[0] == "role" {
+                if kv[1] == "user" {
+                    return Role::USER;
+                } else if kv[1] == "admin" {
+                    return Role::ADMIN;
+                }
+            }
+        }
+        Role::USER
+    }
+    pub fn print_raw(&self, profile: Bytes) {
+        println!("{}", CTRstream::new(self.nonce, self.key.clone()).crypt(profile));
+    }
+}
+
+/**
  * Profile Oracle for 2.13
  */
 pub struct ProfileOracle {
@@ -181,6 +253,13 @@ impl ProfileCBCOracle {
             iv: Bytes::rand(BLOCK_SIZE),
         }
     }
+    pub fn key_as_iv() -> Self {
+        let iv = Bytes::rand(BLOCK_SIZE);
+        Self {
+            key: iv.clone(),
+            iv,
+        }
+    }
     pub fn encode_profile(&self, email: Bytes) -> Bytes {
         aes_cbc_en(
             self.create_profile(email).pad_pkcs7(BLOCK_SIZE),
@@ -193,22 +272,25 @@ impl ProfileCBCOracle {
             + email.remove(';' as u8).remove('=' as u8)
             + Bytes::read_utf8(";comment2=%20like%20a%20pound%20of%20bacon")
     }
-    pub fn get_role(&self, profile: Bytes) -> Role {
+    pub fn get_role(&self, profile: Bytes) -> Result<Role, Bytes> {
         for p in aes_cbc_de(profile, self.key.clone(), self.iv.clone())
             .trim_pkcs7()
-            .to_utf8()
+            .to_ascii()?
             .split(";")
         {
             let kv: Vec<&str> = p.split("=").collect();
             if kv[0] == "admin" {
                 if kv[1] == "false" {
-                    return Role::USER;
+                    return Ok( Role::USER );
                 } else if kv[1] == "true" {
-                    return Role::ADMIN;
+                    return Ok( Role::ADMIN );
                 }
             }
         }
-        Role::USER
+        Ok(Role::USER)
+    }
+    pub fn get_raw_key(&self) -> &Bytes {
+        &self.key
     }
     #[allow(dead_code)]
     pub fn print_raw(&self, profile: Bytes) {

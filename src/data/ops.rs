@@ -28,7 +28,7 @@ impl BitXor for Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor(self, other: Self) -> Self::Output {
         let mut ret = Vec::new();
-        for (b, o) in self.iter().zip(other.iter()) {
+        for (b, o) in self.iter().zip(other.iter().cycle()) {
             ret.push(b ^ o);
         }
         Bytes { bytes: ret }
@@ -41,7 +41,7 @@ impl BitXor for &Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor(self, other: Self) -> Self::Output {
         let mut ret = Vec::new();
-        for (b, o) in self.iter().zip(other.iter()) {
+        for (b, o) in self.iter().zip(other.iter().cycle()) {
             ret.push(b ^ o);
         }
         Bytes { bytes: ret }
@@ -54,7 +54,7 @@ impl BitXor<Bytes> for &Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor(self, other: Bytes) -> Self::Output {
         let mut ret = Vec::new();
-        for (b, o) in self.iter().zip(other.iter()) {
+        for (b, o) in self.iter().zip(other.iter().cycle()) {
             ret.push(b ^ o);
         }
         Bytes { bytes: ret }
@@ -67,7 +67,7 @@ impl BitXor<&Bytes> for Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor(self, other: &Self) -> Self::Output {
         let mut ret = Vec::new();
-        for (b, o) in self.iter().zip(other.iter()) {
+        for (b, o) in self.iter().zip(other.iter().cycle()) {
             ret.push(b ^ o);
         }
         Bytes { bytes: ret }
@@ -77,7 +77,7 @@ impl BitXor<&Bytes> for Bytes {
 impl BitXorAssign for Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor_assign(&mut self, other: Self) {
-        for (b, o) in self.iter_mut().zip(other.iter()) {
+        for (b, o) in self.iter_mut().zip(other.iter().cycle()) {
             *b = *b ^ o;
         }
     }
@@ -86,7 +86,7 @@ impl BitXorAssign for Bytes {
 impl BitXorAssign<&Self> for Bytes {
     // rhs is the "right-hand side" of the expression `a ^ b`
     fn bitxor_assign(&mut self, other: &Self) {
-        for (b, o) in self.iter_mut().zip(other.iter()) {
+        for (b, o) in self.iter_mut().zip(other.iter().cycle()) {
             *b = *b ^ o;
         }
     }
@@ -263,6 +263,12 @@ impl PartialEq for Bytes {
         } else {
             false
         }
+    }
+}
+
+impl PartialEq<&Bytes> for Bytes {
+    fn eq(&self, other: &&Self) -> bool {
+        self == *other
     }
 }
 

@@ -19,8 +19,31 @@ use oracle::Oracle;
 
 fn main() {
     let start = std::time::Instant::now();
-    challenge_4_25();
+    challenge_4_27();
     println!("Completed in {} mS", start.elapsed().as_millis());
+}
+
+fn challenge_4_27() {
+    let oracle = oracle::ProfileCBCOracle::key_as_iv();
+    let ciphertext_parts = oracle.encode_profile(data::Bytes::read_utf8("some text")).split(16);
+    let ciphertext = ciphertext_parts[0].clone() + data::Bytes::zero(16) + ciphertext_parts[0].clone();
+    if let Err(plain) = oracle.get_role(ciphertext) {
+        let plain = plain.split(16);
+        let key = &plain[0] ^ &plain[2];
+        println!("Key: {:X}", key);
+        assert_eq!(key, oracle.get_raw_key());
+    }
+}
+
+fn challenge_4_26() {
+    let oracle = oracle::CTRProfileOracle::new();
+    // email=<>&uid=10&role=user
+    let ciphertext = oracle.encode_profile(data::Bytes::read_utf8("test\x00role\x00admin"));
+    let mut mask = data::Bytes::zero(ciphertext.len());
+    mask["email=test".len()] = '&' as u8;
+    mask["email=test&role".len()] = '=' as u8;
+    let ciphertext = ciphertext ^ mask;
+    println!("Role: {:?}", oracle.get_role(ciphertext));
 }
 
 fn challenge_4_25() {
@@ -225,8 +248,8 @@ fn challenge_2_16() {
         ("comment1=cooking%20MCs;userdata=".len() + start_padding.len()) / 16,
     );
 
-    assert_eq!(oracle.get_role(enc), oracle::Role::USER);
-    assert_eq!(oracle.get_role(swapped), oracle::Role::ADMIN);
+    assert_eq!(oracle.get_role(enc), Ok(oracle::Role::USER));
+    assert_eq!(oracle.get_role(swapped), Ok(oracle::Role::ADMIN));
 }
 
 fn challenge_2_15() {

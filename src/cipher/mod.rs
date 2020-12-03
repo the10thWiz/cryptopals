@@ -84,6 +84,13 @@ impl CTRstream {
             current: LinkedList::new(),
         }
     }
+    pub fn crypt(&mut self, input: Bytes) -> Bytes {
+        let mut ret = Bytes::zero(0);
+        for block in input.split(16) {
+            ret+= block ^ self.get_next();
+        }
+        ret
+    }
     //pub fn crypt(&mut self, input: Bytes) -> Bytes {
         //let mut ret = Bytes::zero(input.len());
         //for i in 0..input.len() {
