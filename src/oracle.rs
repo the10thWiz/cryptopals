@@ -1,5 +1,5 @@
-use crate::cipher::*;
 use crate::cipher::stream::Stream;
+use crate::cipher::*;
 use crate::data::Bytes;
 use crate::file::File;
 use rand::prelude::*;
@@ -86,12 +86,14 @@ impl CTROracle {
 }
 impl Oracle for CTROracle {
     fn encrypt(&self, input: Bytes) -> Bytes {
-        CTRstream::new(self.nonce, self.key.clone()).crypt(input
+        CTRstream::new(self.nonce, self.key.clone()).crypt(
+            input
                 + Bytes::read_64(
                     "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXk\
     gaGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBqdXN0IHRvIHNheSBoaQpEaWQgeW91IH\
     N0b3A/IE5vLCBJIGp1c3QgZHJvdmUgYnkK",
-                ))
+                ),
+        )
     }
     fn decrypt(&self, input: Bytes) {
         println!("{:16?}", self.encrypt(input));
@@ -121,7 +123,8 @@ impl CTRProfileOracle {
             + Bytes::read_utf8("&uid=10&role=user")
     }
     pub fn get_role(&self, profile: Bytes) -> Role {
-        for p in CTRstream::new(self.nonce, self.key.clone()).crypt(profile)
+        for p in CTRstream::new(self.nonce, self.key.clone())
+            .crypt(profile)
             .to_utf8()
             .split("&")
         {
@@ -137,7 +140,10 @@ impl CTRProfileOracle {
         Role::USER
     }
     pub fn print_raw(&self, profile: Bytes) {
-        println!("{}", CTRstream::new(self.nonce, self.key.clone()).crypt(profile));
+        println!(
+            "{}",
+            CTRstream::new(self.nonce, self.key.clone()).crypt(profile)
+        );
     }
 }
 
@@ -281,9 +287,9 @@ impl ProfileCBCOracle {
             let kv: Vec<&str> = p.split("=").collect();
             if kv[0] == "admin" {
                 if kv[1] == "false" {
-                    return Ok( Role::USER );
+                    return Ok(Role::USER);
                 } else if kv[1] == "true" {
-                    return Ok( Role::ADMIN );
+                    return Ok(Role::ADMIN);
                 }
             }
         }

@@ -23,8 +23,8 @@ pub const F: u64 = 1812433253;
 pub const LOWER_MASK: u32 = (1 << R) - 1; // That is, the binary number of r 1's
 pub const UPPER_MASK: u32 = !LOWER_MASK;
 
-use crate::data::Bytes;
 use crate::cipher::stream::StreamCipher;
+use crate::data::Bytes;
 
 pub struct MersenneGen {
     vals: [u32; N],

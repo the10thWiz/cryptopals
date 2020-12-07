@@ -6,11 +6,13 @@ use crate::oracle::{CBCPaddingOracle, Oracle};
 /**
  * Uses the provided Iterator to generate and test every possible key, and returns the value after xor (^)
  * that minimizes the score function provided
+ *
+ * Returns: (best plaintext, key, score)
 */
 pub fn decrypt_xor(
     data: Bytes,
     key: impl Iterator<Item = Bytes>,
-    score: &Fn(&str) -> f64,
+    score: &dyn Fn(&str) -> f64,
 ) -> (Bytes, Bytes, f64) {
     let mut min = f64::INFINITY;
     let mut k: Bytes = Bytes::zero(1);

@@ -122,6 +122,14 @@ impl Add<Self> for Bytes {
         Self { bytes: ret }
     }
 }
+impl Add<&[u8]> for Bytes {
+    type Output = Self;
+    fn add(self, other: &[u8]) -> Self {
+        let mut ret = self.bytes.clone();
+        ret.extend(other.iter());
+        Self { bytes: ret }
+    }
+}
 
 impl Add<Bytes> for u8 {
     type Output = Bytes;
@@ -135,6 +143,11 @@ impl Add<Bytes> for u8 {
 impl AddAssign<Self> for Bytes {
     fn add_assign(&mut self, other: Self) {
         self.bytes.append(&mut other.bytes.clone());
+    }
+}
+impl AddAssign<&[u8]> for Bytes {
+    fn add_assign(&mut self, other: &[u8]) {
+        self.bytes.extend(other.iter());
     }
 }
 
@@ -171,7 +184,7 @@ impl MulAssign<usize> for Bytes {
     fn mul_assign(&mut self, num: usize) {
         if num == 0 {
             self.bytes = vec![];
-        }else {
+        } else {
             let mut ret = self.bytes.clone();
             for _ in 1..num {
                 ret.append(&mut self.bytes.clone());

@@ -1,9 +1,8 @@
-
 mod aes;
 pub mod rsa;
 pub mod stream;
 
-use stream::{StreamCipher, SeekableStreamCipher};
+use stream::{SeekableStreamCipher, StreamCipher};
 
 use crate::data::Bytes;
 use std::collections::LinkedList;
@@ -87,26 +86,26 @@ impl CTRstream {
     pub fn crypt(&mut self, input: Bytes) -> Bytes {
         let mut ret = Bytes::zero(0);
         for block in input.split(16) {
-            ret+= block ^ self.get_next();
+            ret += block ^ self.get_next();
         }
         ret
     }
     //pub fn crypt(&mut self, input: Bytes) -> Bytes {
-        //let mut ret = Bytes::zero(input.len());
-        //for i in 0..input.len() {
-            //if self.current.is_empty() {
-                //let data;
-                //unsafe {
-                    //data = Bytes::from_bytes(&self.counter.input[..]);
-                    //self.counter.counters[1] += 1;
-                //}
-                //for b in aes_ecb_en(data, self.key.clone()).to_bytes() {
-                    //self.current.push_back(*b);
-                //}
-            //}
-            //ret[i] = input[i] ^ self.current.pop_front().unwrap();
-        //}
-        //ret
+    //let mut ret = Bytes::zero(input.len());
+    //for i in 0..input.len() {
+    //if self.current.is_empty() {
+    //let data;
+    //unsafe {
+    //data = Bytes::from_bytes(&self.counter.input[..]);
+    //self.counter.counters[1] += 1;
+    //}
+    //for b in aes_ecb_en(data, self.key.clone()).to_bytes() {
+    //self.current.push_back(*b);
+    //}
+    //}
+    //ret[i] = input[i] ^ self.current.pop_front().unwrap();
+    //}
+    //ret
     //}
 }
 
@@ -125,10 +124,13 @@ impl SeekableStreamCipher for CTRstream {
         let counter_val = location as u64 / BLOCK_SIZE as u64;
         unsafe {
             let cur_counter = RunningCounter {
-                counters: [self.counter.counters[0], counter_val]
+                counters: [self.counter.counters[0], counter_val],
             };
             let data = Bytes::from_bytes(&cur_counter.input);
-            (counter_val as usize * BLOCK_SIZE, aes_ecb_en(data, self.key.clone()))
+            (
+                counter_val as usize * BLOCK_SIZE,
+                aes_ecb_en(data, self.key.clone()),
+            )
         }
     }
 }

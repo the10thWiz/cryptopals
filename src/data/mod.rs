@@ -644,7 +644,14 @@ impl Bytes {
      * valid UTF-8
      */
     pub fn to_ascii(&self) -> Result<String, Self> {
-        self.bytes.iter().try_fold(String::new(), |mut s, &b| if b <= 127 {s.push(b as char); Ok(s)}else{Err(self.clone())})
+        self.bytes.iter().try_fold(String::new(), |mut s, &b| {
+            if b <= 127 {
+                s.push(b as char);
+                Ok(s)
+            } else {
+                Err(self.clone())
+            }
+        })
     }
     /**
      * Converts raw data buffer to a Base 64 encoded

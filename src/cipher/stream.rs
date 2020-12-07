@@ -21,10 +21,10 @@ impl<C: StreamCipher> Stream<C> {
     /// Encrypts (and decrypts) data using the cipher
     pub fn encrypt(&mut self, data: &Bytes) -> Bytes {
         while self.1.len() < data.len() {
-            self.1+= self.0.get_next();
+            self.1 += self.0.get_next();
         }
         let mut data = data.clone();
-        data^= &self.1;
+        data ^= &self.1;
         self.1.truncate_start(data.len());
         data
     }
@@ -60,10 +60,10 @@ impl<C: SeekableStreamCipher> SeekableStream<C> {
         let mut key_stream = key_stream.truncate_start(location - start);
         while key_stream.len() < data.len() {
             let (_s, next) = self.0.get(start + key_stream.len());
-            key_stream+= next;
+            key_stream += next;
         }
         let mut data = data.clone();
-        data^= key_stream;
+        data ^= key_stream;
         data
     }
     /// Replaces the bytes in cipher with the bytes from new
@@ -71,4 +71,3 @@ impl<C: SeekableStreamCipher> SeekableStream<C> {
         *cipher = cipher.replace(&self.encrypt(new, location)[..], location);
     }
 }
-
