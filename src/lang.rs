@@ -5,9 +5,9 @@ const ORDER: &str = "etaoinsrhldcumfpgwybvkxjqz ETAOINSRHLDCUMFPGWYBVKXJQZ.?!123
 /**
  * Makes a simple guess at whether the string provided is English, using etaoin order
  */
-pub fn score_string(s: &str) -> f64 {
+pub fn score_string(s: impl AsRef<str>) -> f64 {
     let mut score: isize = 0;
-    for c in s.chars() {
+    for c in s.as_ref().chars() {
         score += match ORDER.find(c) {
             None => 255,
             Some(i) => i as isize,
@@ -21,9 +21,9 @@ pub fn score_string(s: &str) -> f64 {
  *
  * Valid = Ascii, alpha-numeric, or selected puncuation
  */
-pub fn count_invalid_letters(s: &str) -> f64 {
+pub fn count_invalid_letters(s: impl AsRef<str>) -> f64 {
     let mut score = 0;
-    for c in s.chars() {
+    for c in s.as_ref().chars() {
         score += match c {
             'a'..='z'
             | 'A'..='Z'
@@ -74,7 +74,8 @@ const STD_FREQ: [f64; 26] = [
 ];
 
 #[allow(dead_code)]
-pub fn histogram_score(s: &str) -> f64 {
+pub fn histogram_score(s: impl AsRef<str>) -> f64 {
+    let s = s.as_ref();
     let mut count = [0usize; 26];
     for c in s.chars() {
         match c {
@@ -102,12 +103,12 @@ pub fn histogram_score(s: &str) -> f64 {
         //);
         diff += (act * 1000.0 - ex * 10.0).abs().round() * mult as f64;
     }
-    (diff * 1f64)
+    diff * 1f64
 }
 
-pub fn histogram(s: &str) -> String {
+pub fn histogram(s: impl AsRef<str>) -> String {
     let mut count = [0usize; 26];
-    for c in s.chars() {
+    for c in s.as_ref().chars() {
         match c {
             'a'..='z' => count[c as usize - 'a' as usize] += 1,
             'A'..='Z' => count[c as usize - 'A' as usize] += 1,
@@ -117,9 +118,10 @@ pub fn histogram(s: &str) -> String {
     String::new()
 }
 
-pub fn mono(message: &str, key: &str) -> String {
+pub fn mono(message: impl AsRef<str>, key: impl AsRef<str>) -> String {
+    let key = key.as_ref();
     let mut ret = String::new();
-    for ch in message.chars() {
+    for ch in message.as_ref().chars() {
         if ch.is_ascii_alphabetic() {
             ret.push(
                 key.chars()
@@ -138,9 +140,9 @@ pub fn mono(message: &str, key: &str) -> String {
  *
  * Hamming distance is the number of different bits
  */
-pub fn hamming_dist(s1: &str, s2: &str) -> usize {
+pub fn hamming_dist(s1: impl AsRef<str>, s2: impl AsRef<str>) -> usize {
     let mut dist = 0usize;
-    for cs in s1.bytes().zip(s2.bytes()) {
+    for cs in s1.as_ref().bytes().zip(s2.as_ref().bytes()) {
         for i in 0..8 {
             let tmp = 1u8 << i;
             if cs.0 & tmp != cs.1 & tmp {
