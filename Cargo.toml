@@ -8,4 +8,12 @@ edition = "2018"
 rand = "0.7"
 num-bigint = { version = "0.3", features = ["rand"] }
 termion = "1.5"
+sha = "1.0.3"
+md4 = "0.9.0"
+block-buffer = "0.9.0"
+digest = { version = "0.9", features = ["dev"] }
+
+[features]
+default = ["std"]
+std = ["digest/std"]
 
