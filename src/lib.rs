@@ -15,3 +15,5 @@ pub mod random;
 
 pub use data::Bytes;
 pub use file::File;
+
+pub use oracle::Oracle;
