@@ -5,9 +5,9 @@ const ORDER: &str = "etaoinsrhldcumfpgwybvkxjqz ETAOINSRHLDCUMFPGWYBVKXJQZ.?!123
 /**
  * Makes a simple guess at whether the string provided is English, using etaoin order
  */
-pub fn score_string(s: impl AsRef<str>) -> f64 {
+pub fn score_string(s: &str) -> f64 {
     let mut score: isize = 0;
-    for c in s.as_ref().chars() {
+    for c in s.chars() {
         score += match ORDER.find(c) {
             None => 255,
             Some(i) => i as isize,
@@ -21,9 +21,9 @@ pub fn score_string(s: impl AsRef<str>) -> f64 {
  *
  * Valid = Ascii, alpha-numeric, or selected puncuation
  */
-pub fn count_invalid_letters(s: impl AsRef<str>) -> f64 {
+pub fn count_invalid_letters(s: &str) -> f64 {
     let mut score = 0;
-    for c in s.as_ref().chars() {
+    for c in s.chars() {
         score += match c {
             'a'..='z'
             | 'A'..='Z'
@@ -74,8 +74,7 @@ const STD_FREQ: [f64; 26] = [
 ];
 
 #[allow(dead_code)]
-pub fn histogram_score(s: impl AsRef<str>) -> f64 {
-    let s = s.as_ref();
+pub fn histogram_score(s: &str) -> f64 {
     let mut count = [0usize; 26];
     for c in s.chars() {
         match c {
