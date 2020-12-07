@@ -44,33 +44,36 @@ pub fn count_invalid_letters(s: &str) -> f64 {
 }
 
 #[allow(dead_code)]
-const STD_FREQ: [f64; 26] = [
-    08.167, // a
-    01.492, // b
-    02.782, // c
-    04.253, // d
-    12.702, // e
-    02.228, // f
-    02.015, // g
-    06.094, // h
-    06.966, // i
-    00.153, // j
-    00.772, // k
-    04.025, // l
-    02.406, // m
-    06.749, // n
-    07.507, // o
-    01.929, // p
-    00.095, // q
-    05.987, // r
-    06.327, // s
-    09.056, // t
-    02.758, // u
-    00.978, // v
-    02.360, // w
-    00.150, // x
-    01.974, // y
-    00.074, // z
+/// (char, expected frequency, multiplier)
+/// The multiplier can be used to weight
+/// letters based on how close they should match
+const STD_FREQ: [(char, f64, f64); 26] = [
+    ('a', 08.167, 0.0),
+    ('b', 01.492, 0.0),
+    ('c', 02.782, 0.0),
+    ('d', 04.253, 0.0),
+    ('e', 12.702, 1.0),
+    ('f', 02.228, 0.0),
+    ('g', 02.015, 0.0),
+    ('h', 06.094, 0.0),
+    ('i', 06.966, 0.0),
+    ('j', 00.153, 0.0),
+    ('k', 00.772, 0.0),
+    ('l', 04.025, 0.0),
+    ('m', 02.406, 0.0),
+    ('n', 06.749, 0.0),
+    ('o', 07.507, 0.0),
+    ('p', 01.929, 0.0),
+    ('q', 00.095, 0.0),
+    ('r', 05.987, 0.0),
+    ('s', 06.327, 0.0),
+    ('t', 09.056, 0.0),
+    ('u', 02.758, 0.0),
+    ('v', 00.978, 0.0),
+    ('w', 02.360, 0.0),
+    ('x', 00.150, 0.0),
+    ('y', 01.974, 0.0),
+    ('z', 00.074, 0.0),
 ];
 
 #[allow(dead_code)]
@@ -84,23 +87,9 @@ pub fn histogram_score(s: &str) -> f64 {
         }
     }
     let mut diff = 0f64;
-    for (i, (&ac, ex)) in count.iter().zip(STD_FREQ.iter()).enumerate() {
+    for (&ac, (_ch, ex, variance)) in count.iter().zip(STD_FREQ.iter()) {
         let act = (ac as f64) / s.len() as f64;
-        let mult = match ORDER
-            .find(((i as u8 + 'a' as u8) as char).to_ascii_lowercase())
-            .unwrap()
-        {
-            0..=0 => 1,
-            _ => 0,
-        };
-        //println!(
-        //"{}: {:05.2}% vs {:05.2}%, {}",
-        //(i as u8 + 'a' as u8) as char,
-        //act * 100.0,
-        //ex,
-        //mult
-        //);
-        diff += (act * 1000.0 - ex * 10.0).abs().round() * mult as f64;
+        diff += (act * 1000.0 - ex * 10.0).abs().round() * variance;
     }
     diff * 1f64
 }

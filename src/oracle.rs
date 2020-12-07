@@ -22,6 +22,13 @@ pub trait Oracle {
 
 /**
  * Oracle for testing ECB/CBC mode detection
+ *
+ * returns (encrypted text, is_cbc_mode)
+ *
+ * Internally: either
+ *    aes_ecb( random | input | random ), false
+ *  or
+ *    aes_cbc( random | input | random ), true
  */
 pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
     let mut rng = thread_rng();
@@ -40,6 +47,8 @@ pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
 
 /**
  * Simple Oracle for 2.12
+ *
+ * encrypt = aes_ecb( user | target_text )
  */
 pub struct OracleSimple {
     key: Bytes,
@@ -166,17 +175,26 @@ impl ProfileOracle {
             key: Bytes::rand(BLOCK_SIZE),
         }
     }
+    /// Encodes a profile string and encrypts it
+    /// 
+    /// = aes_ecb( "email=" | email | "&uid=10&role=user")
     pub fn encode_profile(&self, email: Bytes) -> Bytes {
         aes_ecb_en(
             self.create_profile(email).pad_pkcs7(BLOCK_SIZE),
             self.key.clone(),
         )
     }
+    /// Constructs a profile for `encode_profile`
     pub fn create_profile(&self, email: Bytes) -> Bytes {
         Bytes::read_utf8("email=")
             + email.remove('&' as u8).remove('=' as u8)
             + Bytes::read_utf8("&uid=10&role=user")
     }
+    /// Gets the role from a profile string
+    ///
+    /// Converts the string into key/value pairs,
+    /// and checks the value of the first `user`
+    /// key.
     pub fn get_role(&self, profile: Bytes) -> Role {
         for p in aes_ecb_de(profile, self.key.clone())
             .trim_pkcs7()
@@ -194,6 +212,8 @@ impl ProfileOracle {
         }
         Role::USER
     }
+    /// Debugging print statement to see how the profile
+    /// string is getting decrypted
     pub fn print_raw(&self, profile: Bytes) {
         println!("{0:16?}{0:16X}", aes_ecb_de(profile, self.key.clone()));
     }
