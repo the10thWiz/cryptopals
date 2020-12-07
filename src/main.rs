@@ -111,6 +111,7 @@ fn pad_md4(message: data::Bytes) -> data::Bytes {
     ret
 }
 
+#[test]
 fn challenge_4_29() {
     use sha::utils::DigestExt;
     let key = mac::SecrectDigest::md4();
@@ -170,6 +171,7 @@ fn sha1_pad_bytes(message: data::Bytes) -> (data::Bytes, sha::sha1::Sha1) {
     (padded_message, sha1)
 }
 
+#[test]
 fn challenge_4_28() {
     let key = mac::SecrectDigest::sha1();
     let mut message = file::File::read_hex_file("data_1_4").next().unwrap();
@@ -180,6 +182,7 @@ fn challenge_4_28() {
     println!("Verified message");
 }
 
+#[test]
 fn challenge_4_27() {
     let oracle = oracle::ProfileCBCOracle::key_as_iv();
     let ciphertext_parts = oracle
@@ -195,6 +198,7 @@ fn challenge_4_27() {
     }
 }
 
+#[test]
 fn challenge_4_26() {
     let oracle = oracle::CTRProfileOracle::new();
     // email=<>&uid=10&role=user
@@ -206,6 +210,7 @@ fn challenge_4_26() {
     println!("Role: {:?}", oracle.get_role(ciphertext));
 }
 
+#[test]
 fn challenge_4_25() {
     let data = file::File::read_64_file("data_1_7").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
@@ -223,6 +228,7 @@ fn challenge_4_25() {
     assert_eq!(plaintext, recovered, "Failed to recover plaintext");
 }
 
+#[test]
 fn challenge_3_24() {
     // Prove that the cipher actually works
     let seed = rand::random();
@@ -261,6 +267,7 @@ fn challenge_3_24() {
     // the size, but not substantially
 }
 
+#[test]
 fn challenge_3_23() {
     // randomly seed rng
     let mut rng = random::MersenneGen::new(rand::random());
@@ -305,6 +312,7 @@ fn challenge_3_23() {
      */
 }
 
+#[test]
 fn challenge_3_22() {
     /*
      * I cannot easily do this challenge. Rust doesn't have an easy way to get the current
@@ -315,10 +323,9 @@ fn challenge_3_22() {
      * dirty `get_system_time()`, which could implement fake time passage, and doesn't actually
      * need to use the system time at all.
      */
-    // Rust doesn't have an easy way to get the seconds since the UNIX_EPOCH, so I just used a random value
-    // from the rand module
 }
 
+#[test]
 fn challenge_3_21() {
     let mut rng = random::MersenneGen::new(0);
     for _ in 0..100 {
@@ -326,6 +333,7 @@ fn challenge_3_21() {
     }
 }
 
+#[test]
 fn challenge_3_20() {
     let columns_enc = data::Bytes::pivot(oracle::gen_ctr_tests_3_20());
     let mut columns_plain = Vec::with_capacity(columns_enc.len());
@@ -341,6 +349,7 @@ fn challenge_3_20() {
     }
 }
 
+#[test]
 fn challenge_3_19() {
     /*
      * Skipped this challenge through no fault of my own
@@ -364,6 +373,7 @@ fn challenge_3_19() {
     }
 }
 
+#[test]
 fn challenge_3_18() {
     let data = data::Bytes::read_64(
         "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==",
@@ -375,6 +385,7 @@ fn challenge_3_18() {
     println!("Decrypted: {}", stream.encrypt(&data));
 }
 
+#[test]
 fn challenge_3_17() {
     let oracle = oracle::CBCPaddingOracle::new();
 
@@ -390,6 +401,7 @@ fn challenge_3_17() {
     println!("{}", known.trim_pkcs7());
 }
 
+#[test]
 fn challenge_2_16() {
     let oracle = oracle::ProfileCBCOracle::new();
 
@@ -416,6 +428,7 @@ fn challenge_2_16() {
     assert_eq!(oracle.get_role(swapped), Ok(oracle::Role::ADMIN));
 }
 
+#[test]
 fn challenge_2_15() {
     // I'm supposed to write a function to trim PKCS#7 padding,
     // but I already wrote it. It's `data::Bytes::trim_pkcs7()`
@@ -423,6 +436,7 @@ fn challenge_2_15() {
     // there wasn't anything to remove
 }
 
+#[test]
 fn challenge_2_14() {
     let oracle = oracle::RandomOracle::new();
 
@@ -456,6 +470,7 @@ fn challenge_2_14() {
     println!("{}", known);
 }
 
+#[test]
 fn challenge_2_13() {
     let oracle = oracle::ProfileOracle::new();
 
@@ -478,6 +493,7 @@ fn challenge_2_13() {
     assert_eq!(oracle.get_role(admin_profile), oracle::Role::ADMIN);
 }
 
+#[test]
 fn challenge_2_12() {
     let oracle = oracle::OracleSimple::new();
 
@@ -498,6 +514,7 @@ fn challenge_2_12() {
     println!("{}", known);
 }
 
+#[test]
 fn challenge_2_11() {
     for i in 0..1000 {
         println!("Trial {}", i);
@@ -514,6 +531,7 @@ fn challenge_2_11() {
     }
 }
 
+#[test]
 fn challenge_2_10() {
     let data = file::File::read_64_file("data_2_10").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
@@ -522,6 +540,7 @@ fn challenge_2_10() {
     println!("{}", cipher::aes_cbc_de(data, key, iv));
 }
 
+#[test]
 fn challenge_2_9() {
     let data = data::Bytes::read_utf8("YELLOW SUBMARINE");
     assert_eq!(
@@ -530,6 +549,7 @@ fn challenge_2_9() {
     );
 }
 
+#[test]
 fn challenge_1_8() {
     let ciphertexts = file::File::read_hex_file("data_1_8");
     let mut detected = data::Bytes::zero(0);
@@ -545,6 +565,7 @@ fn challenge_1_8() {
     println!("Repeats: {}", max);
 }
 
+#[test]
 fn challenge_1_7() {
     let data = file::File::read_64_file("data_1_7").read_bytes();
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
@@ -593,6 +614,7 @@ fn challenge_1_6() {
     println!("Text: {}", text);
 }
 
+#[test]
 fn challenge_1_5() {
     let text = data::Bytes::read_utf8(
         "Burning 'em, if you ain't quick and nimble\nI go crazy when I hear a cymbal",
@@ -604,6 +626,7 @@ fn challenge_1_5() {
     assert_eq!((xor ^ key).to_utf8(), text.to_utf8());
 }
 
+#[test]
 fn challenge_1_4() {
     let mut best = (data::Bytes::default(), data::Bytes::default(), 0.0);
 
@@ -618,6 +641,7 @@ fn challenge_1_4() {
     println!("\n{}", best.0);
 }
 
+#[test]
 fn challenge_1_3() {
     let raw1 = data::Bytes::read_hex(
         "1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736",
@@ -629,6 +653,7 @@ fn challenge_1_3() {
     );
 }
 
+#[test]
 fn challenge_1_2() {
     let raw1 = data::Bytes::read_hex("1c0111001f010100061a024b53535009181c");
     let raw2 = data::Bytes::read_hex("686974207468652062756c6c277320657965");
@@ -636,6 +661,7 @@ fn challenge_1_2() {
     assert_eq!(raw1 ^ raw2, "746865206b696420646f6e277420706c6179");
 }
 
+#[test]
 fn challenge_1_1() {
     let raw1 = data::Bytes::read_hex("49276d206b696c6c696e6720796f757220627261696e206c696b65206120706f69736f6e6f7573206d757368726f6f6d");
     assert_eq!(
