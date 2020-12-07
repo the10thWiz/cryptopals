@@ -5,10 +5,12 @@ mod decrypt;
 mod file;
 mod keys;
 mod lang;
+mod mac;
 mod oracle;
 mod random;
 
 use oracle::Oracle;
+use std::iter::FromIterator;
 
 /**
  * Note: this main only runs one challenge
@@ -19,14 +21,168 @@ use oracle::Oracle;
 
 fn main() {
     let start = std::time::Instant::now();
-    challenge_4_27();
+    challenge_4_30();
     println!("Completed in {} mS", start.elapsed().as_millis());
+}
+
+fn challenge_4_30() {
+    use sha::utils::DigestExt;
+    let key = mac::SecrectDigest::md4();
+    let message = file::File::read_hex_file("data_1_4").next().unwrap();
+    let mac = key.sign(&message);
+    println!("mac len: {}", mac.len());
+    assert!(key.verify(&message, &mac));
+    // cheap method to just get the key size
+    // This could just be trial and error, since there are only 64 possible values (since the
+    // message is padded to 64 bytes)
+    let key_len = key.len();
+
+    let padded_message = pad_md4(data::Bytes::zero(key_len) + message.clone());
+    //println!("{:X?}", padded_message.split(8));
+    let mut padded_message = padded_message.truncate_start(key_len);
+    println!("hasher size: {}", std::mem::size_of::<md4::Md4>());
+    let state: Vec<u32> = mac
+        .split(4)
+        .into_iter()
+        .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+        .collect();
+    println!("Collected Mac: {:X?}", mac);
+    println!("Collected State: {:X?}", state);
+    let mut broken_hasher: md4::Md4 = unsafe {
+        let mut md4 = md4::Md4::default();
+        //use digest::Digest;
+        md4.update(data::Bytes::zero(0).to_bytes());
+        md4.update(padded_message.to_bytes());
+        let mut raw: [u32; 24] = std::mem::transmute(md4);
+        println!("{:X?}{:X?}", &raw[0..2], &raw[20..]);
+        //println!("Raw memory");
+        const S: [u32; 4] = [0x6745_2301, 0xEFCD_AB89, 0x98BA_DCFE, 0x1032_5476];
+        for r in raw.iter_mut() {
+            //println!(" {:X}", r);
+        }
+        //let message_len: [u32; 2] = std::mem::transmute((key_len + message.len()) as u64);
+        //raw[0] = message_len[0];
+        //raw[1] = message_len[1];
+        println!("message_len: {:X?}, {:X}", &raw[0..2], key_len + message.len());
+        raw[20] = state[0];
+        raw[21] = state[1];
+        raw[22] = state[2];
+        raw[23] = state[3];
+        std::mem::transmute(raw)
+    };
+    use digest::Digest;
+    let addition = data::Bytes::read_utf8(";admin=true;");
+    //broken_hasher.update(addition.to_bytes());
+    //padded_message += addition;
+
+    unsafe {
+        let mut md4: md4::Md4 = std::mem::transmute_copy(&broken_hasher);
+        let mut gen_arr: () = Default::default();
+        use digest::FixedOutputDirty;
+        //md4.finalize_into_dirty(&mut gen_arr);
+        let raw: [u32; 24] = std::mem::transmute(md4);
+        println!("Copy:");
+        println!("{:X} => {:X?}", padded_message, &raw[20..]);
+        println!("len: {:X?}", &raw[0..2]);
+    }
+
+    let new_mac = data::Bytes::from_bytes(&broken_hasher.finalize()[..]);
+    println!("mac: {:X}", new_mac);
+    println!("mes: {:X}", key.sign(&padded_message));
+    //assert_eq!(key.sign(&padded_message), &new_mac);
+
+    //// Trim fake key
+    //let padded_message = padded_message.truncate_start(key_len);
+    ////println!("{}", padded_message);
+    ////assert_eq!(new_mac, mac);
+    //assert_eq!(key.sign(&padded_message), &new_mac);
+}
+
+fn pad_md4(message: data::Bytes) -> data::Bytes {
+    let mut ret = data::Bytes::empty();
+    let mut buffer: block_buffer::BlockBuffer<digest::consts::U64> =
+        block_buffer::BlockBuffer::default();
+    buffer.input_block(message.to_bytes(), |b| ret += &b[..]);
+    buffer.len64_padding_le(message.len() as u64, |b| ret += &b[..]);
+    ret
+}
+
+fn challenge_4_29() {
+    use sha::utils::DigestExt;
+    let key = mac::SecrectDigest::md4();
+    let message = file::File::read_hex_file("data_1_4").next().unwrap();
+    let mac = key.sign(&message);
+    println!("mac len: {}", mac.len());
+    assert!(key.verify(&message, &mac));
+    // cheap method to just get the key size
+    // This could just be trial and error, since there are only 64 possible values (since the
+    // message is padded to 64 bytes)
+    let key_len = key.len();
+
+    let state: Vec<u32> = mac
+        .split(4)
+        .into_iter()
+        .map(|b| u32::from_be_bytes([b[0], b[1], b[2], b[3]]))
+        .collect();
+    // the zero bytes added to the message represent the size of the key
+    let (mut padded_message, mut sha1_gen) =
+        sha1_pad_bytes(data::Bytes::zero(key_len) + message.clone());
+    sha1_gen.0 = [state[0], state[1], state[2], state[3], state[4]];
+    println!("Padded len: {}", padded_message.len());
+    println!("{:X}", padded_message);
+
+    let addition = data::Bytes::read_utf8("Some new data");
+    let blocks_in_message = padded_message.len() / 64;
+    padded_message += addition;
+    use sha::utils::*;
+    // .skip(n), n is the number of blocks in the original message
+    for block in padded_message
+        .to_vec()
+        .pad_blocks(64, sha::sha1::ops::pad)
+        .skip(blocks_in_message)
+    // number of blocks in the original message
+    {
+        sha::sha1::ops::digest_block(&mut sha1_gen.0, &block[..]);
+    }
+    let new_mac = data::Bytes::from_vec(sha1_gen.to_bytes()); // Without the for loop to add new sha1 blocks
+
+    // Trim fake key
+    let padded_message = padded_message.truncate_start(key_len);
+    //println!("{}", padded_message);
+    //assert_eq!(new_mac, mac);
+    assert_eq!(key.sign(&padded_message), &new_mac);
+}
+
+fn sha1_pad_bytes(message: data::Bytes) -> (data::Bytes, sha::sha1::Sha1) {
+    use sha::utils::*;
+    let mut padded_message = data::Bytes::zero(0);
+    let mut sha1 = sha::sha1::Sha1::default();
+    let padding_vec = message.to_vec();
+    let padded_blocks = padding_vec.pad_blocks(64, sha::sha1::ops::pad);
+    for block in padded_blocks {
+        sha::sha1::ops::digest_block(&mut sha1.0, &block[..]);
+        padded_message += data::Bytes::from_vec(block);
+    }
+    (padded_message, sha1)
+}
+
+fn challenge_4_28() {
+    let key = mac::SecrectDigest::sha1();
+    let mut message = file::File::read_hex_file("data_1_4").next().unwrap();
+    let mac = key.sign(&message);
+    assert!(key.verify(&message, &mac));
+    message[2] ^= 1;
+    assert!(!key.verify(&message, &mac));
+    println!("Verified message");
 }
 
 fn challenge_4_27() {
     let oracle = oracle::ProfileCBCOracle::key_as_iv();
-    let ciphertext_parts = oracle.encode_profile(data::Bytes::read_utf8("some text")).split(16);
-    let ciphertext = ciphertext_parts[0].clone() + data::Bytes::zero(16) + ciphertext_parts[0].clone();
+    let ciphertext_parts = oracle
+        .encode_profile(data::Bytes::read_utf8("some text"))
+        .split(16);
+    let ciphertext =
+        ciphertext_parts[0].clone() + data::Bytes::zero(16) + ciphertext_parts[0].clone();
     if let Err(plain) = oracle.get_role(ciphertext) {
         let plain = plain.split(16);
         let key = &plain[0] ^ &plain[2];
@@ -55,7 +211,7 @@ fn challenge_4_25() {
     let nonce = rand::random();
     let cipher = cipher::stream::SeekableStream::new(cipher::CTRstream::new(nonce, key));
     let encrypted = cipher.encrypt(&plaintext, 0);
-    
+
     // Get keystream by replacing the plaintext (via `edit`) with all zeros
     let mut key_stream = encrypted.clone();
     cipher.edit(&mut key_stream, 0, &data::Bytes::zero(encrypted.len()));
@@ -76,9 +232,10 @@ fn challenge_3_24() {
     // Known plaintext attack
     let seed = rand::random();
     let mut cipher = cipher::stream::Stream::new(random::MersenneGen::new(seed));
-    
+
     // Plaintest: "garbage" + "AAAAA", 0..20 bytes of garbage, 14 bytes of 'A'
-    let plaintext = data::Bytes::rand(rand::random::<usize>() % 20) + data::Bytes::from_bytes(b"A") * 14;
+    let plaintext =
+        data::Bytes::rand(rand::random::<usize>() % 20) + data::Bytes::from_bytes(b"A") * 14;
     let encrypted = cipher.encrypt(&plaintext);
     let unknown_size = encrypted.len() - 14;
     // get the known portion of the plaintext
@@ -86,7 +243,7 @@ fn challenge_3_24() {
     // xor with plaintext to get the keystream portion
     let key_stream = known_plain ^ (data::Bytes::from_bytes(b"A") * 14);
     // Every 4 bytes of the keystream is one 32bit output of the rng
-    
+
     // Could brute force solution by just running through all possible seeds.
     // The challenge does specify that the seed should only be 16 bits, so
     // this is more feasible than with 32 bits
@@ -207,7 +364,10 @@ fn challenge_3_18() {
     let data = data::Bytes::read_64(
         "L77na/nrFsKvynd6HzOoG7GHTLXsTVu9qvY/2syLXzhPweyyMTJULu/6/kXX0KSvoOLSFQ==",
     );
-    let mut stream = cipher::stream::Stream::new(cipher::CTRstream::new(0, data::Bytes::read_utf8("YELLOW SUBMARINE")));
+    let mut stream = cipher::stream::Stream::new(cipher::CTRstream::new(
+        0,
+        data::Bytes::read_utf8("YELLOW SUBMARINE"),
+    ));
     println!("Decrypted: {}", stream.encrypt(&data));
 }
 
@@ -386,7 +546,7 @@ fn challenge_1_7() {
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
     println!("{}", cipher::aes_ecb_de(data, key));
 }
-
+#[test]
 fn challenge_1_6() {
     // Hamming_dist (Step 2)
     assert_eq!(lang::hamming_dist("this is a test", "this is a test"), 0);
