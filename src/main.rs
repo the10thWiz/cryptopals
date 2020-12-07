@@ -63,7 +63,11 @@ fn challenge_4_30() {
         //let message_len: [u32; 2] = std::mem::transmute((key_len + message.len()) as u64);
         //raw[0] = message_len[0];
         //raw[1] = message_len[1];
-        println!("message_len: {:X?}, {:X}", &raw[0..2], key_len + message.len());
+        println!(
+            "message_len: {:X?}, {:X}",
+            &raw[0..2],
+            key_len + message.len()
+        );
         raw[20] = state[0];
         raw[21] = state[1];
         raw[22] = state[2];
@@ -546,6 +550,7 @@ fn challenge_1_7() {
     let key = data::Bytes::read_utf8("YELLOW SUBMARINE");
     println!("{}", cipher::aes_ecb_de(data, key));
 }
+
 #[test]
 fn challenge_1_6() {
     // Hamming_dist (Step 2)
