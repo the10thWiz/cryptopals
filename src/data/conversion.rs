@@ -46,6 +46,6 @@ impl Into<String> for Bytes {
 
 impl AsRef<str> for Bytes {
     fn as_ref(&self) -> &str {
-        std::str::from_utf8(&self.bytes[..]).unwrap_or("")
+        std::str::from_utf8(&self.bytes[..]).unwrap_or("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
     }
 }

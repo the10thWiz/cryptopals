@@ -66,3 +66,75 @@ impl SecrectDigest {
         self.sign(message) == mac
     }
 }
+
+fn sha1(parts: &[&[u8]]) -> Vec<u8> {
+    let mut sha1 = Sha1::default();
+    for part in parts {
+        sha1.write_all(part).unwrap();
+    }
+    sha1.flush().unwrap();
+    sha1.to_bytes()
+}
+
+pub struct HMAC {
+    key: Bytes,
+    millis: u64,
+}
+
+impl HMAC {
+    pub fn init(millis: u64) -> Self {
+        Self {
+            key: {
+                let mut sha1 = Sha1::default();
+                sha1.write_all(Bytes::rand(100).to_bytes()).unwrap();
+                sha1.flush().unwrap();
+                Bytes::from_vec(sha1.to_bytes())
+            },
+            millis,
+        }
+    }
+    pub fn get_millis(&self) -> u64 {
+        self.millis
+    }
+    pub fn verify(&self, file: impl AsRef<str>, signature: &Bytes) -> bool {
+        self.test(file, signature, 0)
+    }
+    pub fn weak_verify(&self, file: impl AsRef<str>, signature: &Bytes) -> bool {
+        self.test(file, signature, self.millis)
+    }
+    fn test(&self, file: impl AsRef<str>, signature: &Bytes, millis: u64) -> bool {
+        if signature.len() != Sha1::default_len() {
+            false
+        } else {
+            for (a, b) in self.sign(file).iter().zip(signature.iter()) {
+                if a != b {
+                    return false;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(millis));
+            }
+            true
+        }
+    }
+    pub fn sign(&self, file: impl AsRef<str>) -> Vec<u8> {
+        // self.key is already hashed
+        let o_key_pad = self.key.clone() ^ 0x5Cu8;
+        let i_key_pad = self.key.clone() ^ 0x36u8;
+        sha1(&[
+            o_key_pad.to_bytes(),
+            &sha1(&[i_key_pad.to_bytes(), file.as_ref().as_bytes()]),
+        ])
+    }
+}
+
+pub fn weak_compare(a: &Bytes, b: &Bytes) -> bool {
+    if a.len() != b.len() {
+        false
+    } else {
+        for (a, b) in a.iter().zip(b.iter()) {
+            if a != b {
+                return false;
+            }
+        }
+        true
+    }
+}

@@ -21,8 +21,118 @@ use std::iter::FromIterator;
 
 fn main() {
     let start = std::time::Instant::now();
-    challenge_4_30();
+    challenge_4_32_2();
     println!("Completed in {} mS", start.elapsed().as_millis());
+}
+
+/// Test to see if a timing difference could be detected without
+/// an artificial delay
+fn challenge_4_32_2() {
+    let hmac = mac::HMAC::init(1);
+    let file = "test";
+    let actual_sig = data::Bytes::from_vec(hmac.sign(file));
+    let mut times = [0; 20];
+    let num_trials = 100;
+    for i in 0..20 {
+        let mut copied_sig = actual_sig.clone();
+        copied_sig[i] += 0;
+        for _ in 0..num_trials {
+            let start = std::time::Instant::now();
+            //hmac.verify(file, &copied_sig);
+            mac::weak_compare(&actual_sig, &copied_sig);
+            times[i] += start.elapsed().as_nanos();
+        }
+        //times[i] /= num_trials;
+    }
+    for (i, n) in times.iter().enumerate() {
+        println!("Steps: {}, time: {}", i, n);
+    }
+}
+
+fn challenge_4_32() {
+    use sha::utils::DigestExt;
+    let hmac = mac::HMAC::init(1);
+    let file = "test";
+    let start = std::time::Instant::now();
+    hmac.weak_verify(file, &data::Bytes::from_vec(hmac.sign(file)));
+    println!("Normal Verify time: {}ns", start.elapsed().as_nanos());
+    assert!(hmac.verify(file, &data::Bytes::from_vec(hmac.sign(file))));
+    let real_sig = hmac.sign(file);
+    println!(
+        "Esitmated time: {}ms",
+        real_sig
+            .iter()
+            .enumerate()
+            .map(|(i, &b)| i * hmac.get_millis() as usize * b as usize)
+            .sum::<usize>()
+    );
+    println!("Correct Signature: {:X}", data::Bytes::from_vec(real_sig));
+    let mut signature = data::Bytes::zero(sha::sha1::Sha1::default_len());
+    let mut i = 0;
+    loop {
+        // Timing accuracy could be increased by averaging multiple calls.
+        // However, this likely isn't worth it while using std::thread::sleep,
+        // since it doesn't seem to be more accurate than 1ms anyway. At this
+        // point, these time differences could be significantly impacted by other
+        // processes running concurrently.
+        //
+        // This could be improved, esp. since the base verify (without sleep)
+        // takes less than .02ms, but I would need to write my own sleep method
+        // to have a reasonably good chance to break it.
+        let time = std::time::Instant::now();
+        let correct = hmac.weak_verify(file, &signature);
+        let mut elapsed = time.elapsed().as_millis();
+        //if elapsed as u64 > hmac.get_millis() * 10 {
+        //elapsed += hmac.get_millis() as u128 / 2;
+        //}
+        if correct {
+            break;
+        } else {
+            let key = (elapsed / hmac.get_millis() as u128).min(19);
+            if i != key {
+                println!("Current Signature: {:X}", signature);
+            }
+            i = key;
+            signature[key as usize] = signature[key as usize].wrapping_add(1u8);
+        }
+    }
+    println!("Current Signature: {:X}", signature);
+    assert!(hmac.verify(file, &signature));
+}
+
+fn challenge_4_31() {
+    use sha::utils::DigestExt;
+    let hmac = mac::HMAC::init(100);
+    let file = "test";
+    assert!(hmac.verify(file, &data::Bytes::from_vec(hmac.sign(file))));
+    let real_sig = hmac.sign(file);
+    println!(
+        "Esitmated time: {}ms",
+        real_sig
+            .iter()
+            .enumerate()
+            .map(|(i, &b)| i * 100 * b as usize)
+            .sum::<usize>()
+    );
+    println!("Correct Signature: {:X}", data::Bytes::from_vec(real_sig));
+    let mut signature = data::Bytes::zero(sha::sha1::Sha1::default_len());
+    let mut i = 0;
+    loop {
+        let time = std::time::Instant::now();
+        let correct = hmac.weak_verify(file, &signature);
+        let elapsed = time.elapsed().as_millis() + 50;
+        if correct {
+            break;
+        } else {
+            let key = elapsed / 100;
+            if i != key {
+                println!("Current Signature: {:X}", signature);
+            }
+            i = key;
+            signature[key as usize] = signature[key as usize].wrapping_add(1u8);
+        }
+    }
+    assert!(hmac.verify(file, &signature));
 }
 
 fn challenge_4_30() {
