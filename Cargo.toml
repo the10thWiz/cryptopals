@@ -12,6 +12,7 @@ sha = "1.0.3"
 md4 = "0.9.0"
 block-buffer = "0.9.0"
 digest = { version = "0.9", features = ["dev"] }
+lazy_static = "1.4.0"
 
 [features]
 default = ["std"]

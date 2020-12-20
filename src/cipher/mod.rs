@@ -1,4 +1,5 @@
 mod aes;
+pub mod diffie;
 pub mod rsa;
 pub mod stream;
 

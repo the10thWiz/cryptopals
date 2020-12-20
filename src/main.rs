@@ -1,4 +1,8 @@
 #![allow(dead_code)]
+
+#[macro_use]
+extern crate lazy_static;
+
 mod cipher;
 mod data;
 mod decrypt;
@@ -21,8 +25,21 @@ use std::iter::FromIterator;
 
 fn main() {
     let start = std::time::Instant::now();
-    challenge_4_32_2();
+    challenge_5_33();
     println!("Completed in {} mS", start.elapsed().as_millis());
+}
+
+fn challenge_5_33() {
+    let (a, A) = cipher::diffie::diffie_hellman_weak_a();
+    let (b, B) = cipher::diffie::diffie_hellman_weak_a();
+    let sa = cipher::diffie::diffie_hellman_weak_key(a, B);
+    let sb = cipher::diffie::diffie_hellman_weak_key(b, A);
+    assert_eq!(sa, sb);
+    let (a, A) = cipher::diffie::diffie_hellman_a();
+    let (b, B) = cipher::diffie::diffie_hellman_a();
+    let sa = cipher::diffie::diffie_hellman_key(a, B);
+    let sb = cipher::diffie::diffie_hellman_key(b, A);
+    assert_eq!(sa, sb);
 }
 
 /// Test to see if a timing difference could be detected without
