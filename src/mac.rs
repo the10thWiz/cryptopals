@@ -93,6 +93,9 @@ impl HMAC {
             millis,
         }
     }
+    pub fn key(key: Bytes) -> Self {
+        Self { key, millis: 0 }
+    }
     pub fn get_millis(&self) -> u64 {
         self.millis
     }

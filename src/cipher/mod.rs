@@ -57,11 +57,26 @@ pub fn aes_cbc_de(input: Bytes, key: Bytes, iv: Bytes) -> Bytes {
     let mut output = Bytes::with_capacity(input.len());
     let mut last = iv;
     for part in input.split(16) {
-        output += last ^ aes::aes_block_encrypt(part.clone(), key.clone());
+        output += last ^ aes::aes_block_decrypt(part.clone(), key.clone());
         last = part;
     }
     output
 }
+
+//pub fn aes_gcm_en(input: Bytes, key: Bytes, iv: Bytes) -> (Bytes, Bytes) {
+    //let mut output = Bytes::with_capacity(input.len());
+    //let h = derive_h(&key);
+    //let mut auth_tag = mult_h(Bytes::zero(BLOCK_SIZE), h);
+    //let mut counter = iv + Bytes::zero(BLOCK_SIZE / 2);
+    //for block in input.split(BLOCK_SIZE) {
+        //let tmp = aes::aes_block_encrypt(counter.clone(), key.clone()) ^ block;
+        //auth_tag = mult_h(auth_tag ^ tmp, h);
+        //output += tmp;
+        //count.inc();
+    //}
+    //auth_tag = mult_h(auth_tag ^ todo!(), h);
+    //(output, auth_tag)
+//}
 
 union RunningCounter {
     counters: [u64; 2],

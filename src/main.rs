@@ -13,8 +13,19 @@ mod mac;
 mod oracle;
 mod random;
 
+mod comms;
+mod passwd;
+
+use cryptopals::cipher::diffie::diffie_hellman_a;
+use num_bigint::BigUint;
 use oracle::Oracle;
+use rand::random;
+use sha::sha256;
+use std::hash::Hasher;
 use std::iter::FromIterator;
+use std::sync::mpsc::*;
+
+use crate::passwd::PasswdStore;
 
 /**
  * Note: this main only runs one challenge
@@ -25,10 +36,209 @@ use std::iter::FromIterator;
 
 fn main() {
     let start = std::time::Instant::now();
-    challenge_5_33();
+    challenge_5_36();
     println!("Completed in {} mS", start.elapsed().as_millis());
 }
 
+//#[test]
+fn challenge_5_36() {
+    // SRP - Secure Remote Protocol
+    enum Message {
+        SendD { email: String, d_a: BigUint },
+        SendSalt { salt: data::Bytes, d_b: BigUint },
+        SendHMAC { sig: Vec<u8> },
+        Complete { res: bool },
+    }
+
+    let mut store = PasswdStore::new();
+    store.add_user("admin@me.net".to_string(), "admin");
+    let client = |tx: Sender<Message>, rx: Receiver<Message>| {
+        let (m_a, d_a) = diffie_hellman_a();
+        println!("Sending SendD");
+        tx.send(Message::SendD {
+            email: "admin@me.net".to_string(),
+            d_a: d_a.clone(),
+        })
+        .unwrap();
+        println!("Waiting on Salt");
+        if let Message::SendSalt { salt, d_b } = rx.recv().unwrap() {
+            println!("Recieved Salt");
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&d_a.to_bytes_be());
+            hasher.write(&d_b.to_bytes_be());
+            let u = hasher.finish().to_be();
+            println!("Calc u");
+
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&salt);
+            hasher.write("admin".as_bytes());
+            let x = hasher.finish().to_be();
+            println!("Calc x");
+
+            let t = BigUint::from(3usize)
+                * cipher::diffie::NIST_G.modpow(&BigUint::from(x), &*cipher::diffie::NIST_P);
+            //% cipher::diffie::NIST_P.clone();
+            let mut d_b = d_b;
+            while d_b < t {
+                d_b = d_b + cipher::diffie::NIST_P.clone();
+            }
+
+            let s = (d_b - t).modpow(&(m_a + BigUint::from(u) * x), &*cipher::diffie::NIST_P);
+            println!("Calc s: {}", s);
+
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&s.to_bytes_be());
+            let k = hasher.finish().to_be();
+            let mac = mac::HMAC::key(salt);
+            let sig = mac.sign(format!("{}", k));
+            println!("Sending HMAC");
+            tx.send(Message::SendHMAC { sig }).unwrap();
+            println!("Waiting on Complete");
+            if let Message::Complete { res } = rx.recv().unwrap() {
+                println!("Result: {}", res);
+            }
+        }
+    };
+    let server = move |tx: Sender<Message>, rx: Receiver<Message>| {
+        println!("Waiting on SendD");
+        if let Message::SendD { email, d_a } = rx.recv().unwrap() {
+            println!("Recieved SendD");
+            let tmp = store.db.get(&email).unwrap();
+            let (m_b, d_b) = diffie_hellman_a();
+            let x = BigUint::from_bytes_be(tmp.hash.to_bytes());
+            let v = cipher::diffie::NIST_G.modpow(&x, &*cipher::diffie::NIST_P);
+            let d_b = (d_b + v.clone() * BigUint::from(3usize)) % &*cipher::diffie::NIST_P;
+            println!("Sending Salt");
+            tx.send(Message::SendSalt {
+                salt: tmp.salt.clone(), // k = 2
+                d_b: d_b.clone(),
+            })
+            .unwrap();
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&d_a.to_bytes_be());
+            hasher.write(&d_b.to_bytes_be());
+            let u = hasher.finish().to_be();
+
+            //let mut hasher = sha256::Sha256::default();
+            //hasher.write(&tmp.salt);
+            //hasher.write("admin".as_bytes());
+            //let x = hasher.finish().to_be();
+
+            let s = (d_a * v.modpow(&BigUint::from(u), &*cipher::diffie::NIST_P))
+                .modpow(&m_b, &*cipher::diffie::NIST_P);
+            println!("Calc s: {}", s);
+
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&s.to_bytes_be());
+            let k = hasher.finish().to_be();
+            println!("Waiting on HMAC");
+            if let Message::SendHMAC { sig } = rx.recv().unwrap() {
+                let mac = mac::HMAC::key(tmp.salt.clone());
+                let res = mac.verify(format!("{}", k), &data::Bytes::from_vec(sig));
+                println!("Sending Complete");
+                tx.send(Message::Complete { res }).unwrap();
+            }
+        }
+    };
+    comms::comm_channel(client, server);
+}
+
+#[test]
+fn challenge_5_35() {
+    // Is this worth it?
+    // The challenge is to negotiate p and g
+    // Examples:
+    // - g = 1; this means that the base is 1, so the resulting values will always be one
+    // - g = p; g % p = 0
+    // - g = p - 1; g % p = 1
+    //
+    // In all cases, these resulted in bad bases, that create easily broken A and B
+}
+
+#[allow(non_snake_case)]
+#[test]
+fn challenge_5_34() {
+    enum Message {
+        SendD(BigUint),
+        Message(data::Bytes, data::Bytes),
+    }
+    // Working Normally
+    let a = |tx: Sender<Message>, rx: Receiver<Message>| {
+        let (a, A) = cipher::diffie::diffie_hellman_a();
+        tx.send(Message::SendD(A)).unwrap();
+        if let Message::SendD(B) = rx.recv().unwrap() {
+            let sb = cipher::diffie::diffie_hellman_key(a, B);
+            let key = data::Bytes::zero(BLOCK_SIZE) ^ data::Bytes::from_bytes(&sb.to_bytes_be());
+            let message = data::Bytes::read_utf8("Simple Msg").pad_pkcs7(BLOCK_SIZE);
+            let iv = data::Bytes::rand(BLOCK_SIZE);
+            let enc = cipher::aes_cbc_en(message.clone(), key.clone(), iv.clone());
+            tx.send(Message::Message(iv.clone(), enc)).unwrap();
+            if let Message::Message(iv, enc) = rx.recv().unwrap() {
+                let new_message = cipher::aes_cbc_de(enc, key, iv);
+                println!("A -> {}", new_message);
+                assert_eq!(message, new_message);
+            }
+        }
+    };
+    let b = |tx: Sender<Message>, rx: Receiver<Message>| {
+        let (b, B) = cipher::diffie::diffie_hellman_a();
+        if let Message::SendD(A) = rx.recv().unwrap() {
+            tx.send(Message::SendD(B)).unwrap();
+            let sb = cipher::diffie::diffie_hellman_key(b, A);
+            let key = data::Bytes::zero(BLOCK_SIZE) ^ data::Bytes::from_bytes(&sb.to_bytes_be());
+            if let Message::Message(iv, enc) = rx.recv().unwrap() {
+                let message = cipher::aes_cbc_de(enc, key.clone(), iv).trim_pkcs7();
+                println!("B -> {}", message);
+                let iv = data::Bytes::rand(BLOCK_SIZE);
+                let enc = cipher::aes_cbc_en(message.pad_pkcs7(BLOCK_SIZE), key, iv.clone());
+                tx.send(Message::Message(iv, enc)).unwrap();
+            }
+        }
+    };
+    comms::comm_channel(a, b);
+    // MitM attack (Note that a & b are reused, since they don't change)
+    let m = |atx: Sender<Message>,
+             arx: Receiver<Message>,
+             btx: Sender<Message>,
+             brx: Receiver<Message>| {
+        let _u = if let Message::SendD(u) = arx.recv().unwrap() {
+            u
+        } else {
+            panic!()
+        };
+        btx.send(Message::SendD(cipher::diffie::p_bytes())).unwrap();
+        let _u = if let Message::SendD(u) = brx.recv().unwrap() {
+            u
+        } else {
+            panic!()
+        };
+        atx.send(Message::SendD(cipher::diffie::p_bytes())).unwrap();
+        let (iv, m) = if let Message::Message(iv, m) = arx.recv().unwrap() {
+            (iv, m)
+        } else {
+            panic!()
+        };
+        println!(
+            "M -> {}",
+            cipher::aes_cbc_de(m.clone(), data::Bytes::zero(BLOCK_SIZE), iv.clone())
+        );
+        btx.send(Message::Message(iv, m)).unwrap();
+        let (iv, m) = if let Message::Message(iv, m) = brx.recv().unwrap() {
+            (iv, m)
+        } else {
+            panic!()
+        };
+        println!(
+            "M -> {}",
+            cipher::aes_cbc_de(m.clone(), data::Bytes::zero(BLOCK_SIZE), iv.clone())
+        );
+        atx.send(Message::Message(iv, m)).unwrap();
+    };
+    comms::comm_channel_mitm(a, b, m);
+}
+
+#[test]
+#[allow(non_snake_case)]
 fn challenge_5_33() {
     let (a, A) = cipher::diffie::diffie_hellman_weak_a();
     let (b, B) = cipher::diffie::diffie_hellman_weak_a();
