@@ -46,7 +46,7 @@ pub fn diffie_hellman_weak_key(a: BigUint, B: BigUint) -> BigUint {
 pub fn diffie_hellman_a() -> (BigUint, BigUint) {
     let mut rng = rand::thread_rng();
     let a = rng.gen_biguint(10) % &*NIST_P;
-    let A = WEAK_G.modpow(&a, &*NIST_P);
+    let A = NIST_G.modpow(&a, &*NIST_P);
     (a, A)
 }
 /// Generates the shared secret from a and B

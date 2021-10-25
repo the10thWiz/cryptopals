@@ -36,8 +36,150 @@ use crate::passwd::PasswdStore;
 
 fn main() {
     let start = std::time::Instant::now();
-    challenge_5_36();
+    challenge_5_37();
     println!("Completed in {} mS", start.elapsed().as_millis());
+}
+
+fn challenge_5_37() {
+    // SRP - Secure Remote Protocol
+    enum Message {
+        SendD { email: String, d_a: BigUint },
+        SendSalt { salt: data::Bytes, d_b: BigUint },
+        SendHMAC { sig: Vec<u8> },
+        Complete { res: bool },
+    }
+
+    let mut store = PasswdStore::new();
+    store.add_user("admin@me.net".to_string(), "admin");
+    let client = |tx: Sender<Message>, rx: Receiver<Message>| {
+        let (m_a, d_a) = diffie_hellman_a();
+        println!("Sending SendD");
+        tx.send(Message::SendD {
+            email: "admin@me.net".to_string(),
+            d_a: d_a.clone(),
+        })
+        .unwrap();
+        println!("Waiting on Salt");
+        if let Message::SendSalt { salt, d_b } = rx.recv().unwrap() {
+            println!("Recieved Salt");
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&d_a.to_bytes_le());
+            hasher.write(&d_b.to_bytes_le());
+            let u = BigUint::from(hasher.finish().to_le());
+
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&salt);
+            hasher.write("admin".as_bytes());
+            let x = BigUint::from(hasher.finish().to_le());
+
+            let t =
+                BigUint::from(3usize) * cipher::diffie::NIST_G.modpow(&x, &*cipher::diffie::NIST_P);
+
+            let s = (&d_b - &t).modpow(&(m_a + (&u * &x)), &*cipher::diffie::NIST_P);
+
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&s.to_bytes_le());
+            let k_ = hasher.finish().to_le();
+            let mac = mac::HMAC::key(salt);
+            let sig = mac.sign(format!("{}", k_));
+            println!("Sending HMAC");
+            tx.send(Message::SendHMAC { sig }).unwrap();
+            println!("Waiting on Complete");
+            if let Message::Complete { res } = rx.recv().unwrap() {
+                if !res {
+                    panic!("Failed to authenticate");
+                }
+                println!("Result: {}", res);
+            }
+        }
+    };
+    let server = move |tx: Sender<Message>, rx: Receiver<Message>| {
+        println!("Waiting on SendD");
+        if let Message::SendD { email, d_a } = rx.recv().unwrap() {
+            println!("Recieved SendD");
+            let tmp = store.db.get(&email).unwrap();
+            let (m_b, d_b_old) = diffie_hellman_a();
+            let x = BigUint::from_bytes_le(tmp.hash.to_bytes()); // Same hash
+            let v = cipher::diffie::NIST_G.modpow(&x, &*cipher::diffie::NIST_P);
+            let d_b = d_b_old.clone() + (v.clone() * BigUint::from(3usize));
+            println!("Sending Salt");
+            tx.send(Message::SendSalt {
+                salt: tmp.salt.clone(),
+                d_b: d_b.clone(),
+            })
+            .unwrap();
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&d_a.to_bytes_le());
+            hasher.write(&d_b.to_bytes_le());
+            let u = BigUint::from(hasher.finish().to_le());
+
+            let s = (d_a * v.clone().modpow(&u, &*cipher::diffie::NIST_P))
+                .modpow(&m_b, &*cipher::diffie::NIST_P);
+            println!("s: {}", s);
+
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&s.to_bytes_le());
+            let k_ = hasher.finish().to_le();
+            println!("Waiting on HMAC");
+            if let Message::SendHMAC { sig } = rx.recv().unwrap() {
+                let mac = mac::HMAC::key(tmp.salt.clone());
+                let res = mac.verify(format!("{}", k_), &data::Bytes::from_vec(sig));
+                println!("Sending Complete");
+                tx.send(Message::Complete { res }).unwrap();
+            }
+        }
+    };
+    // Verify the server works - Can't due to lifetimes
+    //comms::comm_channel(client, server);
+    let attacker = |tx: Sender<Message>, rx: Receiver<Message>| {
+        let (m_a, d_a) = diffie_hellman_a();
+        println!("Sending SendD");
+        tx.send(Message::SendD {
+            email: "admin@me.net".to_string(),
+            d_a: cipher::diffie::NIST_P.clone() * BigUint::from(1usize),
+            // s = 0 (regaurdless of the size of the multiplier)
+            //d_a: 0usize.into(),
+            // s = 0
+            //d_a: d_a.clone(),
+            // Requires actual password
+        })
+        .unwrap();
+        println!("Waiting on Salt");
+        if let Message::SendSalt { salt, d_b } = rx.recv().unwrap() {
+            println!("Recieved Salt");
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&d_a.to_bytes_le());
+            hasher.write(&d_b.to_bytes_le());
+            let u = BigUint::from(hasher.finish().to_le());
+
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&salt);
+            hasher.write("admin".as_bytes());
+            let x = BigUint::from(hasher.finish().to_le());
+
+            let t =
+                BigUint::from(3usize) * cipher::diffie::NIST_G.modpow(&x, &*cipher::diffie::NIST_P);
+
+            let s = (&d_b - &t).modpow(&(m_a + (&u * &x)), &*cipher::diffie::NIST_P);
+            let s: BigUint = 0usize.into();
+
+            let mut hasher = sha256::Sha256::default();
+            hasher.write(&s.to_bytes_le());
+            let k_ = hasher.finish().to_le();
+            let mac = mac::HMAC::key(salt);
+            let sig = mac.sign(format!("{}", k_));
+            println!("Sending HMAC");
+            tx.send(Message::SendHMAC { sig }).unwrap();
+            println!("Waiting on Complete");
+            if let Message::Complete { res } = rx.recv().unwrap() {
+                if !res {
+                    panic!("Failed to authenticate");
+                }
+                println!("Result: {}", res);
+            }
+        }
+    };
+    comms::comm_channel(attacker, server);
 }
 
 //#[test]
@@ -64,37 +206,32 @@ fn challenge_5_36() {
         if let Message::SendSalt { salt, d_b } = rx.recv().unwrap() {
             println!("Recieved Salt");
             let mut hasher = sha256::Sha256::default();
-            hasher.write(&d_a.to_bytes_be());
-            hasher.write(&d_b.to_bytes_be());
-            let u = hasher.finish().to_be();
-            println!("Calc u");
+            hasher.write(&d_a.to_bytes_le());
+            hasher.write(&d_b.to_bytes_le());
+            let u = BigUint::from(hasher.finish().to_le());
 
             let mut hasher = sha256::Sha256::default();
             hasher.write(&salt);
             hasher.write("admin".as_bytes());
-            let x = hasher.finish().to_be();
-            println!("Calc x");
+            let x = BigUint::from(hasher.finish().to_le());
 
-            let t = BigUint::from(3usize)
-                * cipher::diffie::NIST_G.modpow(&BigUint::from(x), &*cipher::diffie::NIST_P);
-            //% cipher::diffie::NIST_P.clone();
-            let mut d_b = d_b;
-            while d_b < t {
-                d_b = d_b + cipher::diffie::NIST_P.clone();
-            }
+            let t =
+                BigUint::from(3usize) * cipher::diffie::NIST_G.modpow(&x, &*cipher::diffie::NIST_P);
 
-            let s = (d_b - t).modpow(&(m_a + BigUint::from(u) * x), &*cipher::diffie::NIST_P);
-            println!("Calc s: {}", s);
+            let s = (&d_b - &t).modpow(&(m_a + (&u * &x)), &*cipher::diffie::NIST_P);
 
             let mut hasher = sha256::Sha256::default();
-            hasher.write(&s.to_bytes_be());
-            let k = hasher.finish().to_be();
+            hasher.write(&s.to_bytes_le());
+            let k_ = hasher.finish().to_le();
             let mac = mac::HMAC::key(salt);
-            let sig = mac.sign(format!("{}", k));
+            let sig = mac.sign(format!("{}", k_));
             println!("Sending HMAC");
             tx.send(Message::SendHMAC { sig }).unwrap();
             println!("Waiting on Complete");
             if let Message::Complete { res } = rx.recv().unwrap() {
+                if !res {
+                    panic!("Failed to authenticate");
+                }
                 println!("Result: {}", res);
             }
         }
@@ -104,37 +241,31 @@ fn challenge_5_36() {
         if let Message::SendD { email, d_a } = rx.recv().unwrap() {
             println!("Recieved SendD");
             let tmp = store.db.get(&email).unwrap();
-            let (m_b, d_b) = diffie_hellman_a();
-            let x = BigUint::from_bytes_be(tmp.hash.to_bytes());
+            let (m_b, d_b_old) = diffie_hellman_a();
+            let x = BigUint::from_bytes_le(tmp.hash.to_bytes()); // Same hash
             let v = cipher::diffie::NIST_G.modpow(&x, &*cipher::diffie::NIST_P);
-            let d_b = (d_b + v.clone() * BigUint::from(3usize)) % &*cipher::diffie::NIST_P;
+            let d_b = d_b_old.clone() + (v.clone() * BigUint::from(3usize));
             println!("Sending Salt");
             tx.send(Message::SendSalt {
-                salt: tmp.salt.clone(), // k = 2
+                salt: tmp.salt.clone(),
                 d_b: d_b.clone(),
             })
             .unwrap();
             let mut hasher = sha256::Sha256::default();
-            hasher.write(&d_a.to_bytes_be());
-            hasher.write(&d_b.to_bytes_be());
-            let u = hasher.finish().to_be();
+            hasher.write(&d_a.to_bytes_le());
+            hasher.write(&d_b.to_bytes_le());
+            let u = BigUint::from(hasher.finish().to_le());
 
-            //let mut hasher = sha256::Sha256::default();
-            //hasher.write(&tmp.salt);
-            //hasher.write("admin".as_bytes());
-            //let x = hasher.finish().to_be();
-
-            let s = (d_a * v.modpow(&BigUint::from(u), &*cipher::diffie::NIST_P))
+            let s = (d_a * v.clone().modpow(&u, &*cipher::diffie::NIST_P))
                 .modpow(&m_b, &*cipher::diffie::NIST_P);
-            println!("Calc s: {}", s);
 
             let mut hasher = sha256::Sha256::default();
-            hasher.write(&s.to_bytes_be());
-            let k = hasher.finish().to_be();
+            hasher.write(&s.to_bytes_le());
+            let k_ = hasher.finish().to_le();
             println!("Waiting on HMAC");
             if let Message::SendHMAC { sig } = rx.recv().unwrap() {
                 let mac = mac::HMAC::key(tmp.salt.clone());
-                let res = mac.verify(format!("{}", k), &data::Bytes::from_vec(sig));
+                let res = mac.verify(format!("{}", k_), &data::Bytes::from_vec(sig));
                 println!("Sending Complete");
                 tx.send(Message::Complete { res }).unwrap();
             }

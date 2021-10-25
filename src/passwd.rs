@@ -24,7 +24,7 @@ impl Passwd {
         hasher.write(passwd.as_ref().as_bytes());
         Self {
             salt,
-            hash: Bytes::from_bytes(&hasher.finish().to_be_bytes()),
+            hash: Bytes::from_bytes(&hasher.finish().to_le_bytes()),
         }
     }
 
@@ -33,7 +33,7 @@ impl Passwd {
         //hasher.write(pepper);
         hasher.write(&self.salt);
         hasher.write(passwd.as_ref().as_bytes());
-        &hasher.finish().to_be_bytes() == self.hash.to_bytes()
+        &hasher.finish().to_le_bytes() == self.hash.to_bytes()
     }
 }
 
