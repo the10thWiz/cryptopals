@@ -176,7 +176,7 @@ impl ProfileOracle {
         }
     }
     /// Encodes a profile string and encrypts it
-    /// 
+    ///
     /// = aes_ecb( "email=" | email | "&uid=10&role=user")
     pub fn encode_profile(&self, email: Bytes) -> Bytes {
         aes_ecb_en(
