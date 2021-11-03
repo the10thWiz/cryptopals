@@ -40,6 +40,18 @@ fn main() {
     println!("Completed in {} mS", start.elapsed().as_millis());
 }
 
+fn challenge_5_39() {
+    // RSA
+}
+
+fn challenge_5_38() {
+    // Offline dictionary attack
+    //
+    // From my understanding, by mitm-ing the connection, it is possible to get your hands on
+    // enough information to make an offline attack on the hash, while also allowing the client
+    // to still authenticate with the server
+}
+
 fn challenge_5_37() {
     // SRP - Secure Remote Protocol
     enum Message {
