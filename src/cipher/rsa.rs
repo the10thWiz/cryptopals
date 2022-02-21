@@ -167,6 +167,33 @@ fn is_prime_aks(num: BigUint) -> bool {
     false
 }
 
+mod ask_test {
+    use num_bigint::BigUint;
+    use rayon::iter::{IntoParallelIterator, ParallelIterator};
+
+    enum TestResult {
+        Unknown,
+        Prime,
+        Composite,
+    }
+
+    fn log2(n: &BigUint) -> u64 {
+        n.bits() - 1
+    }
+
+    fn test1(n: &BigUint) -> TestResult {
+        let n_as_float = ();
+        let top_limit = log2(n);
+
+        let found_any_integer = (2..=top_limit).into_par_iter().any(|b| {
+                //let rounded = n.nth_root(b);
+                //rounded
+                todo!()
+            });
+        todo!()
+    }
+}
+
 fn is_prime_to(num: BigUint, to: &BigUint) -> bool {
     let (mut max, mut min) = if &num < to {
         (to.clone(), num)

@@ -27,6 +27,18 @@ use std::sync::mpsc::*;
 
 use crate::passwd::PasswdStore;
 
+fn fast_exp(mut base: BigUint, mut exp: BigUint, modulus: BigUint) -> BigUint {
+    let mut product = BigUint::from(1usize);
+    while exp > BigUint::from(0usize) {
+        if exp.bit(0) {
+            product = (product * &base) % &modulus;
+        }
+        base = base.pow(2) % &modulus;
+        exp = exp >> 1;
+    }
+    product
+}
+
 /**
  * Note: this main only runs one challenge
  * In order to run other challenges, line
@@ -36,7 +48,8 @@ use crate::passwd::PasswdStore;
 
 fn main() {
     let start = std::time::Instant::now();
-    challenge_5_37();
+    //challenge_5_37();
+    println!("{}", fast_exp(BigUint::from(5usize), BigUint::from(177usize), BigUint::from(11usize)));
     println!("Completed in {} mS", start.elapsed().as_millis());
 }
 
