@@ -2,6 +2,12 @@ mod aes;
 pub mod diffie;
 pub mod rsa;
 pub mod stream;
+pub mod eliptic_curve;
+pub mod util;
+pub mod modulus;
+pub mod vigenere;
+pub mod psuedorandom;
+mod feistel;
 
 use stream::{SeekableStreamCipher, StreamCipher};
 

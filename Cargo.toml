@@ -5,14 +5,15 @@ authors = ["Matthew <the10thwiz@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-rand = "0.7"
-num-bigint = { version = "0.3", features = ["rand"] }
+rand = "0.8.5"
+num-bigint = { version = "0.4.3", features = ["rand"] }
+num-traits = "*"
 rayon = "1.5.1"
 termion = "1.5"
 sha = "1.0.3"
-md4 = "0.9.0"
-block-buffer = "0.9.0"
-digest = { version = "0.9", features = ["dev"] }
+md4 = "0.10.1"
+block-buffer = "0.10.2"
+digest = { version = "0.10.3", features = ["dev"] }
 lazy_static = "1.4.0"
 
 [features]

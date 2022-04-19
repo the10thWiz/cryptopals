@@ -94,6 +94,19 @@ static S_BOX_INV: [[u8;16];16] = [
     [0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d],
 ];
 
+// Sbox classifications:
+//
+// & -> non linear
+// | -> non linear
+// [a, b] -> [ a &  b]
+// [a, b] -> [!a &  b]
+// [a, b] -> [ a & !b]
+// [a, b] -> [!a & !b]
+// [a, b] -> [ a |  b]
+// [a, b] -> [!a |  b]
+// [a, b] -> [ a | !b]
+// [a, b] -> [!a | !b]
+
 /**
  * preforms the s_box transform
  */

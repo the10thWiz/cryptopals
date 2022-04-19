@@ -1,5 +1,6 @@
 use num_bigint::{BigUint, RandBigInt};
 use rand::prelude::*;
+use rayon::iter::{plumbing::UnindexedProducer, IntoParallelIterator, ParallelIterator};
 use std::ops::Range;
 
 #[derive(Debug)]
@@ -158,39 +159,188 @@ fn perfect_power(num: &BigUint) -> bool {
     false
 }
 
-/// Checks whether the given number is prime, using the AKS test
-fn is_prime_aks(num: BigUint) -> bool {
-    // 1. if n = a**b for a > 1, b > 1, not prime
-    if perfect_power(&num) {
-        return false;
-    }
-    false
+#[derive(Debug, Clone)]
+struct BigUintRange {
+    cur: BigUint,
+    end: BigUint,
 }
 
-mod ask_test {
-    use num_bigint::BigUint;
-    use rayon::iter::{IntoParallelIterator, ParallelIterator};
+impl BigUintRange {
+    fn new(cur: BigUint, end: BigUint) -> Self {
+        Self { cur, end }
+    }
+}
 
-    enum TestResult {
-        Unknown,
-        Prime,
-        Composite,
+impl UnindexedProducer for BigUintRange {
+    type Item = BigUint;
+
+    fn split(self) -> (Self, Option<Self>) {
+        let range = &self.end - &self.cur;
+        if range <= BigUint::from(10u8) {
+            (self, None)
+        } else {
+            let mid = range / 2u8 + &self.cur;
+            (
+                Self {
+                    cur: self.cur,
+                    end: &mid - 1u8,
+                },
+                Some(Self {
+                    cur: mid,
+                    end: self.end,
+                }),
+            )
+        }
     }
 
-    fn log2(n: &BigUint) -> u64 {
-        n.bits() - 1
+    fn fold_with<F>(self, folder: F) -> F
+    where
+        F: rayon::iter::plumbing::Folder<Self::Item>,
+    {
+        folder.consume_iter(self)
     }
+}
 
-    fn test1(n: &BigUint) -> TestResult {
-        let n_as_float = ();
-        let top_limit = log2(n);
+impl ParallelIterator for BigUintRange {
+    type Item = BigUint;
+    fn drive_unindexed<C>(self, consumer: C) -> C::Result
+    where
+        C: rayon::iter::plumbing::UnindexedConsumer<Self::Item>,
+    {
+        rayon::iter::plumbing::bridge_unindexed(self, consumer)
+    }
+}
 
-        let found_any_integer = (2..=top_limit).into_par_iter().any(|b| {
-                //let rounded = n.nth_root(b);
-                //rounded
-                todo!()
-            });
-        todo!()
+impl Iterator for BigUintRange {
+    type Item = BigUint;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.cur > self.end {
+            None
+        } else {
+            let ret = self.cur.clone();
+            self.cur += 1u8;
+            Some(ret)
+        }
+    }
+}
+
+enum TestResult {
+    Unknown,
+    Prime,
+    Composite,
+}
+
+fn log2(n: &BigUint) -> u64 {
+    n.bits() - 1
+}
+
+pub fn gcd(m: BigUint, n: &BigUint) -> BigUint {
+    if m == 0u64.into() {
+        n.clone()
+    } else {
+        gcd(n % &m, &m)
+    }
+}
+
+#[test]
+fn basic() {
+    use std::str::FromStr;
+    assert!(!is_prime_aks(&BigUint::from_str("4").unwrap()));
+    assert!(is_prime_aks(&BigUint::from_str("5").unwrap()));
+    assert!(is_prime_aks(&BigUint::from_str("7").unwrap()));
+    assert!(is_prime_aks(&BigUint::from_str("31").unwrap()));
+    assert!(is_prime_aks(&BigUint::from_str("101").unwrap()));
+    assert!(is_prime_aks(&BigUint::from_str("47939").unwrap()));
+    assert!(is_prime_aks(&BigUint::from_str("1652843").unwrap()));
+    assert!(!is_prime_aks(&BigUint::from_str("4218962626").unwrap()));
+    assert!(is_prime_aks(&BigUint::from_str("4218962623").unwrap()));
+    assert!(is_prime_aks(
+        &BigUint::from_str("288088873692602757671872933931").unwrap()
+    ));
+    let p = BigUint::from_str(
+        "57896044618658097711785492504343953926634992332820282019728792003956564819949",
+    )
+    .unwrap();
+    assert!(is_prime_aks(&p));
+}
+
+/// Checks whether the given number is prime, using the AKS test
+pub fn is_prime_aks(n: &BigUint) -> bool {
+    if n <= &BigUint::from(1u8) {
+        return false;
+    }
+    println!("In test 1: {}", n);
+    let top_limit = log2(n);
+
+    let found_any_integer = (2..=top_limit).into_par_iter().any(|b| {
+        let rounded = n.nth_root(b as u32);
+        &rounded.pow(b as u32) == n
+    });
+    if !found_any_integer {
+        test2(n)
+    } else {
+        false
+    }
+}
+
+/// Calculate r, smallest r st. Or(n) > log2(n)^2
+fn test2(n: &BigUint) -> bool {
+    println!("In test 2");
+    let maxk = BigUint::from(log2(n)).pow(2);
+    let maxr = (BigUint::from(log2(n)).pow(5) + 1u8).max(BigUint::from(3u8));
+
+    let krange = BigUintRange::new(BigUint::from(1u8), maxk);
+
+    let final_r = BigUintRange::new(BigUint::from(2u8), &maxr - 1u8)
+        .find_any(|r| !krange.clone().any(|k| n.modpow(&k, r) < BigUint::from(1u8)))
+        .unwrap_or(maxr);
+    test3(n, final_r)
+}
+
+/// check if 1 < gcd(a, n) < n for some a <= r => composite
+fn test3(n: &BigUint, r: BigUint) -> bool {
+    println!("In test 3");
+    let found_any =
+        BigUintRange::new(BigUint::from(1u8), r.clone()).any(|a| gcd(a, n) > BigUint::from(1u8));
+    if found_any {
+        false
+    } else {
+        if n <= &r {
+            true
+        } else {
+            test5(n)
+        }
+    }
+}
+
+///
+fn test5(n: &BigUint) -> bool {
+    println!("In test 5: max {}", n / 2u8 - 1u8);
+    let mut current_root = BigUint::from(1u8);
+    let mut iter = BigUintRange::new(1u8.into(), n / 2u8 - 1u8);
+    let has_divisible_coeffient = Iterator::any(&mut iter, |a| {
+        //a.modpow(n, n) - a != BigUint::from(0u8)
+        current_root *= n - &a + 1u8;
+        current_root /= a;
+        if &current_root % n != 0u8.into() {
+            true
+        } else {
+            false
+        }
+    });
+    //let has_divisible_coeffient = BigUintRange::new(1u8.into(), n / 2u8 - 1u8).any(|a| {
+    //current_root *= n - &a + 1u8;
+    //current_root /= a;
+    //if &current_root % n != 0u8.into() {
+    //true
+    //} else {
+    //false
+    //}
+    //});
+    if has_divisible_coeffient {
+        false
+    } else {
+        true
     }
 }
 
@@ -218,4 +368,44 @@ fn inv_mod(num: BigUint, modulus: BigUint) -> BigUint {
         i += 1usize;
     }
     panic!("No inverse found")
+}
+
+#[cfg(test)]
+mod fermat {
+    use std::str::FromStr;
+
+    use num_bigint::BigUint;
+
+    #[test]
+    fn test_fermat() {
+        assert_eq!(
+            fermat_factorization(BigUint::from(195usize)),
+            vec![BigUint::from(13usize), BigUint::from(15usize)],
+        );
+        println!("{:?}", fermat_factorization(BigUint::from_str("1234567891").unwrap()));
+    }
+
+    fn fermat_factorization(mut n: BigUint) -> Vec<BigUint> {
+        while &n % 2u8 == BigUint::from(0u8) {
+            n /= 2u8;
+        }
+        let mut x = n.sqrt();
+        if &x * &x == n {
+            vec![x.clone(), x]
+        } else {
+            loop {
+                println!("iteration");
+                x += 1u8;
+                let y = &x * &x - &n;
+                if y > x {
+                    println!("Larger");
+                    return vec![];
+                }
+                let (x1, x2) = (&x - &y, &x + y);
+                if &x1 * &x2 == n {
+                    return vec![x1, x2];
+                }
+            }
+        }
+    }
 }

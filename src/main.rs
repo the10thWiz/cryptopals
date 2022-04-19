@@ -16,6 +16,7 @@ mod random;
 mod comms;
 mod passwd;
 
+use block_buffer::Eager;
 use cryptopals::cipher::diffie::diffie_hellman_a;
 use num_bigint::BigUint;
 use oracle::Oracle;
@@ -26,6 +27,8 @@ use std::iter::FromIterator;
 use std::sync::mpsc::*;
 
 use crate::passwd::PasswdStore;
+#[cfg(test)]
+use crate::cipher::BLOCK_SIZE;
 
 fn fast_exp(mut base: BigUint, mut exp: BigUint, modulus: BigUint) -> BigUint {
     let mut product = BigUint::from(1usize);
@@ -575,7 +578,7 @@ fn challenge_4_30() {
     unsafe {
         let mut md4: md4::Md4 = std::mem::transmute_copy(&broken_hasher);
         let mut gen_arr: () = Default::default();
-        use digest::FixedOutputDirty;
+        //use digest::FixedOutput;
         //md4.finalize_into_dirty(&mut gen_arr);
         let raw: [u32; 24] = std::mem::transmute(md4);
         println!("Copy:");
@@ -595,11 +598,13 @@ fn challenge_4_30() {
     //assert_eq!(key.sign(&padded_message), &new_mac);
 }
 
-fn pad_md4(message: data::Bytes) -> data::Bytes {
+fn pad_md4(mut message: data::Bytes) -> data::Bytes {
     let mut ret = data::Bytes::empty();
-    let mut buffer: block_buffer::BlockBuffer<digest::consts::U64> =
+    let mut buffer: block_buffer::BlockBuffer<digest::consts::U64, Eager> =
         block_buffer::BlockBuffer::default();
-    buffer.input_block(message.to_bytes(), |b| ret += &b[..]);
+    buffer.set_data(message.as_mut_bytes(), |b| for block in b {
+
+    });
     buffer.len64_padding_le(message.len() as u64, |b| ret += &b[..]);
     ret
 }

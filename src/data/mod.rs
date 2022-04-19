@@ -99,6 +99,12 @@ impl Bytes {
         &self.bytes
     }
     ///
+    /// Returns raw data buffer as a `&[u8]`
+    ///
+    pub fn as_mut_bytes(&mut self) -> &mut [u8] {
+        &mut self.bytes
+    }
+    ///
     /// Creates a `Vec` of size `block`, and creates a Bytes for each `block`
     ///
     /// e.g. [1F 22 33 44].collate(2) -> [[1F 33], [22 44]]

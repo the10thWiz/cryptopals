@@ -33,7 +33,7 @@ pub trait Oracle {
 pub fn encryption_oracle(input: Bytes) -> (Bytes, bool) {
     let mut rng = thread_rng();
 
-    let plain = (Bytes::rand(rng.gen_range(5, 10)) + input + Bytes::rand(rng.gen_range(5, 10)))
+    let plain = (Bytes::rand(rng.gen_range(5..10)) + input + Bytes::rand(rng.gen_range(5..10)))
         .pad_pkcs7(BLOCK_SIZE);
     if rng.gen() {
         (
@@ -335,7 +335,7 @@ pub struct CBCPaddingOracle {
 }
 
 fn get_rand() -> Bytes {
-    let r = match thread_rng().gen_range(0, 10) {
+    let r = match thread_rng().gen_range(0..10) {
         0 => Bytes::read_64("MDAwMDAwTm93IHRoYXQgdGhlIHBhcnR5IGlzIGp1bXBpbmc="),
         1 => Bytes::read_64(
             "MDAwMDAxV2l0aCB0aGUgYmFzcyBraWNrZWQgaW4gYW5kIHRoZSBWZWdhJ3MgYXJlIHB1bXBpbic=",

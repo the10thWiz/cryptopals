@@ -52,7 +52,7 @@ impl SecrectDigest {
                 unsafe {
                     let mut md4: md4::Md4 = std::mem::transmute_copy(&md4);
                     let mut gen_arr: () = Default::default();
-                    use digest::FixedOutputDirty;
+                    //use digest::FixedOutputDirty;
                     //md4.finalize_into_dirty(&mut gen_arr);
                     let raw: [u32; 24] = std::mem::transmute(md4);
                     println!("{:X} => {:X?}", message, &raw[20..]);
