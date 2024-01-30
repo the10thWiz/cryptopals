@@ -12,6 +12,7 @@ pub mod keys;
 pub mod lang;
 pub mod oracle;
 pub mod random;
+mod fermat;
 
 pub use data::Bytes;
 pub use file::File;
